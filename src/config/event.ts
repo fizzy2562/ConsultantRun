@@ -6,6 +6,7 @@ export const eventConfig = {
   eventName: import.meta.env.VITE_EVENT_NAME?.trim() || 'Agentforce Belgium 2026',
   eventBadge: import.meta.env.VITE_EVENT_BADGE?.trim() || 'Agentforce Belgium 2026',
   consultantCloudCtaUrl: import.meta.env.VITE_CONSULTANT_CLOUD_CTA_URL?.trim() || fallbackCta,
+  enableGoogleAuth: import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true',
   leaderboardTitles: {
     daily: 'Today at Agentforce',
     allTime: 'All-time board',
