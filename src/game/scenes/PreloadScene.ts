@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { preloadObstacleSprites } from '../systems/ObstacleSprites';
 import { preloadRunnerSprites, registerRunnerAnimations } from '../systems/RunnerSprites';
 import { registerGeneratedTextures } from '../systems/TextureFactory';
 
@@ -8,6 +9,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
+    preloadObstacleSprites(this);
     preloadRunnerSprites(this);
   }
 

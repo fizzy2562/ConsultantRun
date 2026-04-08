@@ -33,7 +33,6 @@ function generatePattern(scene: Phaser.Scene, key: string, draw: (graphics: Phas
 }
 
 export function registerGeneratedTextures(scene: Phaser.Scene): void {
-  generateRoundedRect(scene, 'obstacle-card', 180, 120, 0x202b23, 0xffffff);
   generateRoundedRect(scene, 'ground-strip', 256, 40, 0x121f15, 0x2f4938);
 
   generatePattern(scene, 'bg-grid', (graphics) => {
