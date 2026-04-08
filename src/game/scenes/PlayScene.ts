@@ -48,12 +48,18 @@ export class PlayScene extends Phaser.Scene {
 
   private characterKey = '';
 
+  private jumpCount = 0;
+
+  private isE2EMode = false;
+
   constructor() {
     super('PlayScene');
   }
 
   init(data: { characterKey?: string }): void {
     this.characterKey = data.characterKey ?? '';
+    this.isE2EMode =
+      typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2e') === '1';
   }
 
   create(): void {
@@ -140,16 +146,21 @@ export class PlayScene extends Phaser.Scene {
     this.progressBar.width = (gameConfig.logicalWidth - 48) * this.stageTracker.getProgress(scoreState.score);
     this.scoreText.setText(scoreState.score.toString().padStart(3, '0'));
 
-    const spawnDefinition = this.spawnSystem.update(this.currentSpeed * (delta / 1000), scoreState.elapsedMs);
-
-    if (spawnDefinition) {
-      const obstacle = new Obstacle(
-        this,
-        gameConfig.logicalWidth + spawnDefinition.width,
-        gameConfig.groundY + 6,
-        spawnDefinition
+    if (!this.isE2EMode) {
+      const spawnDefinition = this.spawnSystem.update(
+        this.currentSpeed * (delta / 1000),
+        scoreState.elapsedMs,
       );
-      this.obstacles.add(obstacle);
+
+      if (spawnDefinition) {
+        const obstacle = new Obstacle(
+          this,
+          gameConfig.logicalWidth + spawnDefinition.width,
+          gameConfig.groundY + 6,
+          spawnDefinition,
+        );
+        this.obstacles.add(obstacle);
+      }
     }
 
     this.obstacles.getChildren().forEach((entry) => {
@@ -184,8 +195,29 @@ export class PlayScene extends Phaser.Scene {
     }
 
     body.setVelocityY(difficultyConfig.jumpVelocity);
+    this.jumpCount += 1;
     this.player.jump();
     audioSystem.play('jump');
+  }
+
+  getDebugSnapshot(): {
+    characterKey: string;
+    isGameOver: boolean;
+    jumpCount: number;
+    playerY: number | null;
+    scoreText: string | null;
+  } {
+    return {
+      characterKey: this.characterKey,
+      isGameOver: this.isGameOver,
+      jumpCount: this.jumpCount,
+      playerY: this.player?.y ?? null,
+      scoreText: this.scoreText?.text ?? null,
+    };
+  }
+
+  forceFinishForTest(): void {
+    this.finishRun();
   }
 
   private finishRun(): void {

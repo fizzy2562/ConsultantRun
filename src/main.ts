@@ -1,6 +1,16 @@
 import './style.css';
 import { AppController } from './app/AppController';
 
+declare global {
+  interface Window {
+    __consultantRunDebug?: {
+      destroyApp: () => void;
+      forceFinishRun: () => void;
+      getState: () => unknown;
+    };
+  }
+}
+
 const appRoot = document.querySelector<HTMLDivElement>('#app');
 
 if (!appRoot) {
@@ -35,6 +45,14 @@ const controller = new AppController({
   overlayRoot: document.querySelector<HTMLElement>('#overlay-root'),
   phaserRootId: 'phaser-root',
 });
+
+if (import.meta.env.DEV) {
+  window.__consultantRunDebug = {
+    destroyApp: () => controller.destroyForTest(),
+    forceFinishRun: () => controller.forceFinishRunForTest(),
+    getState: () => controller.getDebugState(),
+  };
+}
 
 controller.init().catch((error) => {
   console.error(error);

@@ -3,6 +3,7 @@ import { eventConfig } from '../config/event';
 import { characters } from '../config/game';
 import { createGame } from '../game/createGame';
 import { getActiveCharacter, setActiveCharacter } from '../game/systems/characterStore';
+import { PlayScene } from '../game/scenes/PlayScene';
 import { audioSystem } from '../game/systems/AudioSystem';
 import { authService } from '../services/auth';
 import { trackEvent } from '../services/analytics';
@@ -374,6 +375,44 @@ export class AppController {
     this.state.loading = false;
     this.game.scene.start('MenuScene');
     this.render();
+  }
+
+  getDebugState(): {
+    authMessage: string | null;
+    isLoading: boolean;
+    pendingRunScore: number | null;
+    playScene: ReturnType<PlayScene['getDebugSnapshot']> | null;
+    screen: ViewState['screen'];
+    selectedCharacter: string;
+    submittedScore: number | null;
+  } {
+    const scene = this.game.scene.getScene('PlayScene');
+    const playScene =
+      scene instanceof PlayScene && scene.scene.isActive() ? scene.getDebugSnapshot() : null;
+
+    return {
+      authMessage: this.state.authMessage,
+      isLoading: this.state.loading,
+      pendingRunScore: this.state.pendingRun?.score ?? null,
+      playScene,
+      screen: this.state.screen,
+      selectedCharacter: this.state.selectedCharacter,
+      submittedScore: this.state.submittedScore?.score ?? null,
+    };
+  }
+
+  forceFinishRunForTest(): void {
+    const scene = this.game.scene.getScene('PlayScene');
+
+    if (scene instanceof PlayScene && scene.scene.isActive()) {
+      scene.forceFinishForTest();
+    }
+  }
+
+  destroyForTest(): void {
+    this.game.destroy(true);
+    this.overlayRoot.innerHTML = '';
+    delete this.overlayRoot.dataset.screen;
   }
 
   private render(): void {

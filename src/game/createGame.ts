@@ -7,8 +7,12 @@ import { PreloadScene } from './scenes/PreloadScene';
 import { ResultScene } from './scenes/ResultScene';
 
 export function createGame(parentId: string): Phaser.Game {
+  const searchParams =
+    typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search);
+  const isE2EMode = searchParams.get('e2e') === '1';
+
   return new Phaser.Game({
-    type: Phaser.AUTO,
+    type: isE2EMode ? Phaser.CANVAS : Phaser.AUTO,
     parent: parentId,
     width: gameConfig.logicalWidth,
     height: gameConfig.logicalHeight,
