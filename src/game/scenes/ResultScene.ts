@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { gameConfig } from '../../config/game';
 import type { PendingRun } from '../../types/app';
 import { Player } from '../objects/Player';
+import { getActiveCharacter } from '../systems/characterStore';
 import { createSceneBackdrop, type BackdropLayers } from '../systems/SceneBackdrop';
 
 interface ResultSceneData {
@@ -21,7 +22,7 @@ export class ResultScene extends Phaser.Scene {
 
   create(data?: ResultSceneData): void {
     this.layers = createSceneBackdrop(this);
-    this.player = new Player(this, gameConfig.logicalWidth * 0.32, gameConfig.groundY - 4);
+    this.player = new Player(this, gameConfig.logicalWidth * 0.32, gameConfig.groundY - 4, getActiveCharacter());
     this.player.fail();
 
     this.add.rectangle(gameConfig.logicalWidth * 0.7, 240, 176, 176, 0x0c1710, 0.84).setStrokeStyle(2, 0x4da68b, 0.4);

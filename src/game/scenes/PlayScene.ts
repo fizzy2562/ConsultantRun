@@ -46,8 +46,14 @@ export class PlayScene extends Phaser.Scene {
 
   private isGameOver = false;
 
+  private characterKey = '';
+
   constructor() {
     super('PlayScene');
+  }
+
+  init(data: { characterKey?: string }): void {
+    this.characterKey = data.characterKey ?? '';
   }
 
   create(): void {
@@ -60,7 +66,7 @@ export class PlayScene extends Phaser.Scene {
     const groundBody = this.physics.add.existing(this.ground, true);
     (groundBody.body as Phaser.Physics.Arcade.StaticBody).setSize(gameConfig.logicalWidth, 54);
 
-    this.player = new Player(this, gameConfig.runnerStartX, gameConfig.groundY);
+    this.player = new Player(this, gameConfig.runnerStartX, gameConfig.groundY, this.characterKey || undefined);
     this.player.setCollideWorldBounds(false);
     this.player.clearFailState();
 

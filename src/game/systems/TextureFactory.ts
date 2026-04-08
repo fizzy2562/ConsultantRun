@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { characters } from '../../config/game';
+import type { CharacterPalette } from '../../types/app';
 
 function generateRoundedRect(
   scene: Phaser.Scene,
@@ -24,7 +26,7 @@ function generateRoundedRect(
 function generateRunnerFrame(
   scene: Phaser.Scene,
   key: string,
-  options: { legOffset: number; armOffset: number; accent: number; tilt?: number; fail?: boolean }
+  options: { legOffset: number; armOffset: number; palette: CharacterPalette; tilt?: number; fail?: boolean }
 ): void {
   if (scene.textures.exists(key)) {
     return;
@@ -35,13 +37,17 @@ function generateRunnerFrame(
   const graphics = scene.make.graphics();
   const tilt = options.tilt ?? 0;
 
-  graphics.fillStyle(0xffffff, 1);
+  // Head
+  graphics.fillStyle(options.palette.body, 1);
   graphics.fillCircle(42, 20, 14);
+  // Torso
   graphics.fillRoundedRect(30 + tilt, 34, 28, 42, 12);
-  graphics.fillStyle(options.accent, 1);
+  // Accent stripe (sponsor colour)
+  graphics.fillStyle(options.palette.accent, 1);
   graphics.fillRoundedRect(28 + tilt, 42, 34, 16, 8);
 
-  graphics.fillStyle(options.fail ? 0xd46f67 : 0xffffff, 1);
+  // Arms & legs
+  graphics.fillStyle(options.fail ? 0xd46f67 : options.palette.arms, 1);
   graphics.fillRoundedRect(18 + options.armOffset + tilt, 44, 20, 10, 5);
   graphics.fillRoundedRect(52 + tilt, 46, 22, 10, 5);
   graphics.fillRoundedRect(30 + options.legOffset + tilt, 72, 12, 32, 5);
@@ -61,15 +67,58 @@ function generatePattern(scene: Phaser.Scene, key: string, draw: (graphics: Phas
   graphics.destroy();
 }
 
+function registerCharacterTextures(scene: Phaser.Scene, characterKey: string, palette: CharacterPalette): void {
+  generateRunnerFrame(scene, `${characterKey}-idle`,  { legOffset: 0,   armOffset: 0,   palette });
+  generateRunnerFrame(scene, `${characterKey}-run-1`, { legOffset: -12, armOffset: -10, palette });
+  generateRunnerFrame(scene, `${characterKey}-run-2`, { legOffset: 12,  armOffset: 8,   palette });
+  generateRunnerFrame(scene, `${characterKey}-jump`,  { legOffset: 4,   armOffset: 10,  palette, tilt: -6 });
+  generateRunnerFrame(scene, `${characterKey}-fail`,  { legOffset: -6,  armOffset: -8,  palette: { ...palette, accent: 0xb26d6d }, tilt: 8, fail: true });
+
+  if (!scene.anims.exists(`${characterKey}-idle`)) {
+    scene.anims.create({
+      key: `${characterKey}-idle`,
+      frames: [{ key: `${characterKey}-idle` }],
+      frameRate: 1,
+      repeat: -1,
+    });
+  }
+
+  if (!scene.anims.exists(`${characterKey}-run`)) {
+    scene.anims.create({
+      key: `${characterKey}-run`,
+      frames: [{ key: `${characterKey}-run-1` }, { key: `${characterKey}-run-2` }],
+      frameRate: 8,
+      repeat: -1,
+    });
+  }
+
+  if (!scene.anims.exists(`${characterKey}-jump`)) {
+    scene.anims.create({
+      key: `${characterKey}-jump`,
+      frames: [{ key: `${characterKey}-jump` }],
+      frameRate: 1,
+      repeat: -1,
+    });
+  }
+
+  if (!scene.anims.exists(`${characterKey}-fail`)) {
+    scene.anims.create({
+      key: `${characterKey}-fail`,
+      frames: [{ key: `${characterKey}-fail` }],
+      frameRate: 1,
+      repeat: -1,
+    });
+  }
+}
+
 export function registerGeneratedTextures(scene: Phaser.Scene): void {
   generateRoundedRect(scene, 'obstacle-card', 180, 120, 0x202b23, 0xffffff);
   generateRoundedRect(scene, 'ground-strip', 256, 40, 0x121f15, 0x2f4938);
 
-  generateRunnerFrame(scene, 'runner-idle', { legOffset: 0, armOffset: 0, accent: 0x4da68b });
-  generateRunnerFrame(scene, 'runner-run-1', { legOffset: -12, armOffset: -10, accent: 0x3d7fab });
-  generateRunnerFrame(scene, 'runner-run-2', { legOffset: 12, armOffset: 8, accent: 0x51ac52 });
-  generateRunnerFrame(scene, 'runner-jump', { legOffset: 4, armOffset: 10, accent: 0x4da68b, tilt: -6 });
-  generateRunnerFrame(scene, 'runner-fail', { legOffset: -6, armOffset: -8, accent: 0xb26d6d, tilt: 8, fail: true });
+  // Generate textures for all sponsor characters
+  for (const character of characters) {
+    registerCharacterTextures(scene, character.key, character.palette);
+  }
 
   generatePattern(scene, 'bg-grid', (graphics) => {
     graphics.clear();
@@ -96,40 +145,4 @@ export function registerGeneratedTextures(scene: Phaser.Scene): void {
       graphics.fillRect(index * 26, 48 + (index % 3) * 18, 18, 170 - index * 8);
     }
   });
-
-  if (!scene.anims.exists('runner-idle')) {
-    scene.anims.create({
-      key: 'runner-idle',
-      frames: [{ key: 'runner-idle' }],
-      frameRate: 1,
-      repeat: -1,
-    });
-  }
-
-  if (!scene.anims.exists('runner-run')) {
-    scene.anims.create({
-      key: 'runner-run',
-      frames: [{ key: 'runner-run-1' }, { key: 'runner-run-2' }],
-      frameRate: 8,
-      repeat: -1,
-    });
-  }
-
-  if (!scene.anims.exists('runner-jump')) {
-    scene.anims.create({
-      key: 'runner-jump',
-      frames: [{ key: 'runner-jump' }],
-      frameRate: 1,
-      repeat: -1,
-    });
-  }
-
-  if (!scene.anims.exists('runner-fail')) {
-    scene.anims.create({
-      key: 'runner-fail',
-      frames: [{ key: 'runner-fail' }],
-      frameRate: 1,
-      repeat: -1,
-    });
-  }
 }

@@ -1,4 +1,4 @@
-import type { ObstacleDefinition, StageReached } from '../types/app';
+import type { CharacterDefinition, ObstacleDefinition, StageReached } from '../types/app';
 
 export const gameConfig = {
   logicalWidth: 390,
@@ -16,6 +16,25 @@ export const stageThresholds: Array<{ stage: StageReached; minScore: number }> =
   { stage: 'Build', minScore: 351 },
   { stage: 'UAT', minScore: 651 },
   { stage: 'Go Live', minScore: 901 },
+];
+
+export const characters: CharacterDefinition[] = [
+  // Platinum sponsors
+  { key: 'runner-deloitte',  label: 'Deloitte Digital',   tier: 'Platinum',       palette: { body: 0x1a1a1a, accent: 0x86BC25, arms: 0xffffff } },
+  { key: 'runner-spire',     label: 'spire.',              tier: 'Platinum',       palette: { body: 0x1a1a1a, accent: 0x00AEEF, arms: 0xffffff } },
+  { key: 'runner-delaware',  label: 'delaware',            tier: 'Platinum',       palette: { body: 0xffffff, accent: 0xC8102E, arms: 0xffffff } },
+  // Groundbreakers partners
+  { key: 'runner-accenture', label: 'Accenture',           tier: 'Groundbreakers', palette: { body: 0x1a1a1a, accent: 0xA100FF, arms: 0xffffff } },
+  { key: 'runner-pwc',       label: 'PwC',                 tier: 'Groundbreakers', palette: { body: 0xffffff, accent: 0xE0301E, arms: 0xffffff } },
+  { key: 'runner-capgemini', label: 'Capgemini',           tier: 'Groundbreakers', palette: { body: 0xffffff, accent: 0x0070AD, arms: 0xffffff } },
+  { key: 'runner-valantic',  label: 'valantic',            tier: 'Groundbreakers', palette: { body: 0xffffff, accent: 0x00A4B4, arms: 0xffffff } },
+  { key: 'runner-easi',      label: 'easi',                tier: 'Groundbreakers', palette: { body: 0xffffff, accent: 0x1B2A6B, arms: 0xffffff } },
+  { key: 'runner-inetum',    label: 'inetum',              tier: 'Groundbreakers', palette: { body: 0xffffff, accent: 0x005CA9, arms: 0xffffff } },
+  // Navigators partners
+  { key: 'runner-genesys',   label: 'Genesys',             tier: 'Navigators',     palette: { body: 0xffffff, accent: 0xFF4F1F, arms: 0xffffff } },
+  { key: 'runner-butler',    label: 'Butler',              tier: 'Navigators',     palette: { body: 0xfff3e0, accent: 0xC87941, arms: 0xfff3e0 } },
+  { key: 'runner-novera',    label: 'Novera Solutions',    tier: 'Navigators',     palette: { body: 0xffffff, accent: 0x6B8E5E, arms: 0xffffff } },
+  { key: 'runner-nrb',       label: 'NRB',                 tier: 'Navigators',     palette: { body: 0x1B3A6B, accent: 0xffffff, arms: 0xaabbcc } },
 ];
 
 export const obstacleDefinitions: ObstacleDefinition[] = [

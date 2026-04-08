@@ -60,6 +60,21 @@ export interface UserIdentity {
   provider: AuthMethod | 'demo';
 }
 
+export interface CharacterPalette {
+  body: number;
+  accent: number;
+  arms: number;
+}
+
+export type SponsorTier = 'Platinum' | 'Groundbreakers' | 'Navigators';
+
+export interface CharacterDefinition {
+  key: string;
+  label: string;
+  tier: SponsorTier;
+  palette: CharacterPalette;
+}
+
 export interface ObstacleDefinition {
   key: string;
   label: string;

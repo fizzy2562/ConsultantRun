@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { eventConfig } from '../config/event';
+import { characters } from '../config/game';
 import { createGame } from '../game/createGame';
+import { setActiveCharacter } from '../game/systems/characterStore';
 import { audioSystem } from '../game/systems/AudioSystem';
 import { authService } from '../services/auth';
 import { trackEvent } from '../services/analytics';
@@ -26,7 +28,8 @@ interface AppControllerOptions {
 }
 
 interface ViewState {
-  screen: 'menu' | 'play' | 'result';
+  screen: 'menu' | 'character-select' | 'play' | 'result';
+  selectedCharacter: string;
   session: EventSessionContext | null;
   pendingRun: PendingRun | null;
   submittedScore: LeaderboardEntry | null;
@@ -97,6 +100,7 @@ export class AppController {
 
   private state: ViewState = {
     screen: 'menu',
+    selectedCharacter: characters[0].key,
     session: null,
     pendingRun: null,
     submittedScore: null,
@@ -150,8 +154,24 @@ export class AppController {
       audioSystem.unlock();
       audioSystem.play('cta');
 
-      if (action === 'play' || action === 'replay') {
-        void this.startPlay();
+      if (action === 'play') {
+        this.state.screen = 'character-select';
+        this.render();
+        return;
+      }
+
+      if (action === 'replay') {
+        this.state.screen = 'character-select';
+        this.render();
+        return;
+      }
+
+      if (action === 'select-character') {
+        const key = actionable.dataset.key;
+        if (key) {
+          this.state.selectedCharacter = key;
+          void this.startPlay();
+        }
         return;
       }
 
@@ -226,8 +246,9 @@ export class AppController {
     this.state.pendingRun = null;
     clearPendingRun();
     this.render();
-    trackEvent('play_clicked');
-    this.game.scene.start('PlayScene');
+    setActiveCharacter(this.state.selectedCharacter);
+    trackEvent('play_clicked', { character: this.state.selectedCharacter });
+    this.game.scene.start('PlayScene', { characterKey: this.state.selectedCharacter });
   }
 
   private async handleRunEnded(pendingRun: PendingRun): Promise<void> {
@@ -353,7 +374,78 @@ export class AppController {
       return;
     }
 
+    if (this.state.screen === 'character-select') {
+      this.overlayRoot.innerHTML = this.renderCharacterSelectOverlay();
+      return;
+    }
+
     this.overlayRoot.innerHTML = this.renderMenuOverlay();
+  }
+
+  private renderCharacterSelectOverlay(): string {
+    const tierOrder: Array<{ tier: string; label: string }> = [
+      { tier: 'Platinum', label: 'Platinum Partners' },
+      { tier: 'Groundbreakers', label: 'Groundbreakers Partners' },
+      { tier: 'Navigators', label: 'Navigators Partners' },
+    ];
+
+    const sections = tierOrder
+      .map(({ tier, label }) => {
+        const group = characters.filter((c) => c.tier === tier);
+        if (!group.length) return '';
+
+        const cards = group
+          .map((c) => {
+            const accentHex = `#${c.palette.accent.toString(16).padStart(6, '0')}`;
+            const bodyHex = `#${c.palette.body.toString(16).padStart(6, '0')}`;
+            const isSelected = this.state.selectedCharacter === c.key;
+            return `
+              <button
+                class="character-card${isSelected ? ' character-card--selected' : ''}"
+                data-action="select-character"
+                data-key="${escapeHtml(c.key)}"
+                type="button"
+              >
+                <div class="character-card__avatar" style="background:${bodyHex};border-color:${accentHex};">
+                  <div class="character-card__stripe" style="background:${accentHex};"></div>
+                </div>
+                <span class="character-card__name">${escapeHtml(c.label)}</span>
+              </button>
+            `;
+          })
+          .join('');
+
+        return `
+          <div class="character-tier">
+            <p class="eyebrow">${escapeHtml(label)}</p>
+            <div class="character-grid">${cards}</div>
+          </div>
+        `;
+      })
+      .join('');
+
+    return `
+      <section class="overlay-layout overlay-layout--character-select">
+        <div class="overlay-column overlay-column--wide">
+          <article class="overlay-card overlay-card--floating">
+            <div class="top-bar">
+              <span class="event-chip">${escapeHtml(eventConfig.eventBadge)}</span>
+              <button class="button button--subtle button--ghost" data-action="toggle-mute" type="button">
+                ${audioSystem.isMuted() ? 'Sound off' : 'Sound on'}
+              </button>
+            </div>
+
+            <div class="overlay-headline">
+              <p class="eyebrow">Choose your team</p>
+              <h2>Who are you running for?</h2>
+              <p>Pick a sponsor partner and represent them on the leaderboard.</p>
+            </div>
+
+            ${sections}
+          </article>
+        </div>
+      </section>
+    `;
   }
 
   private renderMenuOverlay(): string {

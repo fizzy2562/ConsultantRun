@@ -517,3 +517,82 @@ pre {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ── Character select ─────────────────────────────────────────────────────── */
+
+.overlay-layout--character-select {
+  display: flex;
+  justify-content: center;
+}
+
+.overlay-column--wide {
+  width: 100%;
+  max-width: 860px;
+}
+
+.character-tier {
+  margin-top: 24px;
+}
+
+.character-tier .eyebrow {
+  margin-bottom: 10px;
+}
+
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.character-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 14px 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.character-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.character-card--selected {
+  border-color: #4da68b;
+  background: rgba(77, 166, 139, 0.12);
+}
+
+.character-card__avatar {
+  position: relative;
+  width: 48px;
+  height: 64px;
+  border-radius: 10px;
+  border: 3px solid;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.character-card__stripe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 36%;
+  height: 26%;
+  border-radius: 4px;
+  margin: 0 4px;
+}
+
+.character-card__name {
+  word-break: break-word;
+}

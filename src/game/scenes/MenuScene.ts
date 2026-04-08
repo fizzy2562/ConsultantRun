@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { gameConfig } from '../../config/game';
 import { Player } from '../objects/Player';
+import { getActiveCharacter } from '../systems/characterStore';
 import { createSceneBackdrop, type BackdropLayers } from '../systems/SceneBackdrop';
 
 export class MenuScene extends Phaser.Scene {
@@ -14,7 +15,7 @@ export class MenuScene extends Phaser.Scene {
 
   create(): void {
     this.layers = createSceneBackdrop(this);
-    this.player = new Player(this, gameConfig.logicalWidth * 0.34, gameConfig.groundY - 6);
+    this.player = new Player(this, gameConfig.logicalWidth * 0.34, gameConfig.groundY - 6, getActiveCharacter());
     this.player.setScale(1.15);
     this.player.setIdle();
 
