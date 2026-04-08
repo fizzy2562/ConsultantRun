@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import { cleanupApp, getDebugState, startRun, waitForScreen } from './helpers';
 
 test.afterEach(async ({ page }) => {
@@ -35,14 +35,25 @@ test('mobile tap on the canvas triggers a jump', async ({ page }) => {
   expect(after.playScene?.jumpCount).toBeGreaterThan(before.playScene?.jumpCount ?? 0);
 });
 
+async function waitForPlaySceneReady(page: Page): Promise<void> {
+  // data-screen="play" flips at the same time as scene.start(), but scene.create()
+  // runs asynchronously. Poll until getDebugSnapshot() returns a live playScene object
+  // so that forceFinishRun() targets the new scene, not the previous dead one.
+  await waitForScreen(page, 'play');
+  await page.waitForFunction(() => {
+    const state = window.__consultantRunDebug?.getState() as { playScene?: unknown } | undefined;
+    return state?.playScene != null;
+  });
+}
+
 test('mobile replay returns the player to sponsor select after a result', async ({ page }) => {
   await startRun(page, 'runner-delaware');
 
-  // Exhaust all 3 lives before the result screen appears
+  // Exhaust all 3 lives; each intermediate death returns to play once the new scene is ready
   await page.evaluate(() => window.__consultantRunDebug?.forceFinishRun());
-  await waitForScreen(page, 'play');
+  await waitForPlaySceneReady(page);
   await page.evaluate(() => window.__consultantRunDebug?.forceFinishRun());
-  await waitForScreen(page, 'play');
+  await waitForPlaySceneReady(page);
   await page.evaluate(() => window.__consultantRunDebug?.forceFinishRun());
   await waitForScreen(page, 'result');
 

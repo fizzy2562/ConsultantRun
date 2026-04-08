@@ -329,12 +329,14 @@ export class AppController {
     this.state.livesRemaining -= 1;
 
     if (this.state.livesRemaining > 0) {
-      // Still have lives left — restart immediately, keep the HUD showing lives
-      this.state.screen = 'play';
-      this.render();
-      // Brief delay so the fail animation is visible before restart
+      // Hold the current overlay state during the fail animation, then start the new scene.
+      // Only re-render (updating the lives dots) after PlayScene.start() so the DOM's
+      // data-screen attribute transitions to 'play' at the same moment the new scene is
+      // actually active — keeping controller state and Phaser scene in sync.
       await new Promise<void>((resolve) => { setTimeout(resolve, 900); });
+      this.state.screen = 'play';
       this.game.scene.start('PlayScene', { characterKey: this.state.selectedCharacter });
+      this.render();
       return;
     }
 
