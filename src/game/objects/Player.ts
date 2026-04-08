@@ -17,8 +17,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setOrigin(0.5, 1);
     this.setBounce(0);
     this.setCollideWorldBounds(false);
-    this.setBodySize(56, 90);
-    this.setOffset(18, 20);
+    this.setBodySize(52, 98);
+    this.setOffset(35, 22);
     this.play(`${this.characterKey}-run`);
   }
 
