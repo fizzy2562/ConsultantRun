@@ -12,8 +12,6 @@ import { leaderboardService } from '../services/leaderboard';
 import {
   clearPendingRun,
   getPendingRun,
-  getStoredDisplayName,
-  saveStoredDisplayName,
   savePendingRun,
 } from '../services/storage';
 import type {
@@ -33,9 +31,8 @@ interface AppControllerOptions {
 }
 
 interface ViewState {
-  screen: 'menu' | 'character-select' | 'name-entry' | 'play' | 'result';
+  screen: 'menu' | 'character-select' | 'play' | 'result';
   selectedCharacter: string;
-  displayName: string;
   livesRemaining: number;
   bestPendingRun: PendingRun | null;
   isLeaderboardOpen: boolean;
@@ -152,7 +149,6 @@ export class AppController {
   private state: ViewState = {
     screen: 'menu',
     selectedCharacter: characters[0].key,
-    displayName: '',
     livesRemaining: TOTAL_LIVES,
     bestPendingRun: null,
     isLeaderboardOpen: false,
@@ -193,9 +189,6 @@ export class AppController {
       this.state.selectedCharacter = stored;
     }
 
-    // Restore display name — persists across replays on personal phones
-    this.state.displayName = getStoredDisplayName() ?? '';
-
     await this.refreshLeaderboards();
 
     if (this.state.user && this.state.pendingRun) {
@@ -231,7 +224,7 @@ export class AppController {
         this.state.bestPendingRun = null;
         this.state.pendingRun = null;
         clearPendingRun();
-        this.openCharacterSelect();
+        void this.startPlay();
         return;
       }
 
@@ -239,14 +232,8 @@ export class AppController {
         const key = actionable.dataset.key;
         if (key) {
           this.state.selectedCharacter = key;
-          setActiveCharacter(key);
-          this.openNameEntry();
+          void this.startPlay();
         }
-        return;
-      }
-
-      if (action === 'start-run') {
-        void this.startPlay();
         return;
       }
 
@@ -294,20 +281,13 @@ export class AppController {
 
     this.overlayRoot.addEventListener('submit', (event) => {
       const form = event.target as HTMLFormElement;
-      event.preventDefault();
 
-      if (form.dataset.action === 'name-entry') {
-        const raw = new FormData(form).get('name');
-        const name = typeof raw === 'string' ? raw.trim() : '';
-        this.state.displayName = name || 'Consultant';
-        saveStoredDisplayName(this.state.displayName);
-        void this.startPlay();
+      if (form.dataset.action !== 'magic-link') {
         return;
       }
 
-      if (form.dataset.action === 'magic-link') {
-        void this.handleMagicLink(new FormData(form).get('email'));
-      }
+      event.preventDefault();
+      void this.handleMagicLink(new FormData(form).get('email'));
     });
 
     authService.onChange((user, method) => {
@@ -337,10 +317,7 @@ export class AppController {
     this.render();
     setActiveCharacter(this.state.selectedCharacter);
     trackEvent('play_clicked', { character: this.state.selectedCharacter });
-    this.game.scene.start('PlayScene', {
-      characterKey: this.state.selectedCharacter,
-      displayName: this.state.displayName,
-    });
+    this.game.scene.start('PlayScene', { characterKey: this.state.selectedCharacter });
   }
 
   private async handleRunEnded(pendingRun: PendingRun): Promise<void> {
@@ -358,10 +335,7 @@ export class AppController {
       // actually active — keeping controller state and Phaser scene in sync.
       await new Promise<void>((resolve) => { setTimeout(resolve, 900); });
       this.state.screen = 'play';
-      this.game.scene.start('PlayScene', {
-        characterKey: this.state.selectedCharacter,
-        displayName: this.state.displayName,
-      });
+      this.game.scene.start('PlayScene', { characterKey: this.state.selectedCharacter });
       this.render();
       return;
     }
@@ -490,13 +464,6 @@ export class AppController {
     this.render();
   }
 
-  private openNameEntry(): void {
-    this.state.screen = 'name-entry';
-    this.state.isLeaderboardOpen = false;
-    this.state.authMessage = null;
-    this.render();
-  }
-
   getDebugState(): {
     authMessage: string | null;
     isLoading: boolean;
@@ -555,11 +522,6 @@ export class AppController {
 
     if (this.state.screen === 'character-select') {
       this.overlayRoot.innerHTML = this.renderCharacterSelectOverlay();
-      return;
-    }
-
-    if (this.state.screen === 'name-entry') {
-      this.overlayRoot.innerHTML = this.renderNameEntryOverlay();
       return;
     }
 
@@ -674,60 +636,7 @@ export class AppController {
     `;
   }
 
-  private renderNameEntryOverlay(): string {
-    const character = characterByKey.get(this.state.selectedCharacter);
-    const accentHex = character ? toHex(character.palette.accent) : '#4da68b';
-    const bodyHex = character ? toHex(character.palette.body) : '#1a1a1a';
-
-    return `
-      <section class="overlay-layout overlay-layout--character-select">
-        <div class="overlay-column overlay-column--wide">
-          <article class="overlay-card overlay-card--floating name-entry-card">
-            <div class="top-bar">
-              <span class="event-chip">${escapeHtml(eventConfig.eventBadge)}</span>
-              <button class="button button--ghost button--sm" data-action="toggle-mute" type="button">
-                ${audioSystem.isMuted() ? 'Sound off' : 'Sound on'}
-              </button>
-            </div>
-
-            <div class="name-entry-sponsor">
-              <div class="name-entry-avatar" style="background:${escapeHtml(bodyHex)};border-color:${escapeHtml(accentHex)};">
-                <span style="color:${escapeHtml(accentHex)};">${character ? escapeHtml(character.logoMark) : ''}</span>
-              </div>
-              <div>
-                <p class="eyebrow">Running for</p>
-                <p class="name-entry-sponsor__label">${character ? escapeHtml(character.label) : ''}</p>
-              </div>
-            </div>
-
-            <div class="overlay-headline">
-              <h2>What's your name?</h2>
-              <p>It goes on the leaderboard. Leave blank to run as Consultant.</p>
-            </div>
-
-            <form class="name-entry-form" data-action="name-entry">
-              <input
-                name="name"
-                type="text"
-                placeholder="Your name"
-                maxlength="40"
-                autocomplete="given-name"
-                value="${escapeHtml(this.state.displayName)}"
-                autofocus
-              />
-              <button class="button button--primary button--lg" type="submit" style="background:linear-gradient(135deg,${escapeHtml(accentHex)} 0%,${escapeHtml(accentHex)}cc 100%);">
-                Let's go
-              </button>
-            </form>
-          </article>
-        </div>
-      </section>
-    `;
-  }
-
   private renderMenuOverlay(): string {
-    const hasScores = this.state.dailyLeaderboard.length > 0;
-
     return `
       <section class="overlay-layout">
         <div class="overlay-column">
@@ -748,29 +657,45 @@ export class AppController {
               <button class="button button--primary button--lg" data-action="play" type="button">
                 Play now
               </button>
+              <button class="button button--ghost" data-action="toggle-leaderboard" type="button">
+                ${this.state.isLeaderboardOpen ? 'Hide leaderboard' : 'See top scores'}
+              </button>
             </div>
 
-            <div class="menu-hint">
-              <span class="menu-hint__rule">Tap or press space to jump.</span>
-              <span class="menu-hint__rule">${TOTAL_LIVES} lives. Beat your own best.</span>
+            <p class="helper-copy">${escapeHtml(eventConfig.landing.teaser)}</p>
+          </article>
+
+          <article class="overlay-card overlay-card--compact play-hint">
+            <div class="play-hint__content">
+              <strong>One jump. Three lives.</strong>
+              <p>Tap or press space to jump over project blockers. You get ${TOTAL_LIVES} lives — make them count.</p>
             </div>
           </article>
 
-          <article class="overlay-card overlay-card--compact leaderboard leaderboard--mobile">
-            <div class="leaderboard__header">
-              <div>
-                <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
-                <h3>${hasScores ? 'Can you top this?' : 'No scores yet — be first.'}</h3>
-              </div>
-            </div>
-            ${hasScores ? formatLeaderboard(this.state.dailyLeaderboard.slice(0, 5)) : ''}
-          </article>
+          ${
+            this.state.isLeaderboardOpen
+              ? `
+                <article class="overlay-card overlay-card--compact leaderboard leaderboard--drawer">
+                  <div class="leaderboard__header">
+                    <div>
+                      <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
+                      <h3>Top scores today</h3>
+                    </div>
+                    <button class="button button--ghost button--sm" data-action="toggle-leaderboard" type="button">
+                      Close
+                    </button>
+                  </div>
+                  ${formatLeaderboard(this.state.dailyLeaderboard)}
+                </article>
+              `
+              : ''
+          }
         </div>
 
         <aside class="overlay-card leaderboard leaderboard--sidebar">
           <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
-          <h3>${hasScores ? 'Can you top this?' : 'No scores yet — be first.'}</h3>
-          ${hasScores ? formatLeaderboard(this.state.dailyLeaderboard) : ''}
+          <h3>Room pace</h3>
+          ${formatLeaderboard(this.state.dailyLeaderboard)}
         </aside>
       </section>
     `;
@@ -801,17 +726,18 @@ export class AppController {
 
   private renderResultOverlay(): string {
     const score = this.state.submittedScore ?? this.state.pendingRun;
+    const teaserScore = score ? `Score locked at ${Math.max(score.score - 17, 0)}+` : 'Score ready to unlock';
     const stage = score?.stageReached ?? 'Discovery';
-    const stageLabel = stage === 'Go Live' ? 'Go Live 🎉' : stage;
-    const displayScore = score?.score ?? 0;
+    const fullScore = this.state.submittedScore?.score ?? null;
     const rank = this.state.submittedScore?.rank ?? null;
     const percentile = this.state.submittedScore?.percentile ?? null;
+    const displayScore = score?.score ?? 0;
     const character = characterByKey.get(this.state.selectedCharacter);
     const productUrl = buildCtaUrl(eventConfig.consultantCloudCtaUrl, {
       source: 'consultantrun',
       event_name: this.state.session?.eventName,
       role_intent: this.state.roleIntent,
-      score: displayScore,
+      score: fullScore,
       stage,
       utm_source: this.state.session?.utm.utmSource,
       utm_medium: this.state.session?.utm.utmMedium,
@@ -842,28 +768,28 @@ export class AppController {
               <p>
                 ${
                   this.state.submittedScore
-                    ? 'Your score is on the leaderboard.'
-                    : 'Sign in to lock in your score and claim a prize at the stand.'
+                    ? 'Result unlocked and on the leaderboard.'
+                    : `${escapeHtml(teaserScore)}. ${escapeHtml(eventConfig.resultCopy.lockedBody)}`
                 }
               </p>
             </div>
 
             <div class="stat-grid">
               <article class="stat-card">
-                <span class="stat-card__label">Score</span>
+                <span class="stat-card__label">Best score</span>
                 <span class="stat-card__value">${displayScore}</span>
               </article>
               <article class="stat-card">
                 <span class="stat-card__label">Stage</span>
-                <span class="stat-card__value">${escapeHtml(stageLabel)}</span>
+                <span class="stat-card__value">${escapeHtml(stage)}</span>
               </article>
               <article class="stat-card">
                 <span class="stat-card__label">Rank</span>
-                <span class="stat-card__value">${rank ? `#${rank}` : '—'}</span>
+                <span class="stat-card__value">${rank ? `#${rank}` : 'Unlock'}</span>
               </article>
               <article class="stat-card">
                 <span class="stat-card__label">Prize</span>
-                <span class="stat-card__value">${this.state.submittedScore ? 'Claim at stand' : 'Sign in first'}</span>
+                <span class="stat-card__value">${this.state.submittedScore ? 'Unlocked' : 'Pending'}</span>
               </article>
             </div>
 
@@ -872,6 +798,26 @@ export class AppController {
                 ? `
                   <div class="result-grid">
                     <span class="status-chip">Top ${percentile}% of players today</span>
+                  </div>
+
+                  <div class="result-grid">
+                    <p class="eyebrow">What are you preparing for?</p>
+                    <div class="role-grid">
+                      ${eventConfig.roleOptions
+                        .map(
+                          (role) => `
+                            <button
+                              type="button"
+                              class="role-chip ${this.state.roleIntent === role ? 'role-chip--active' : ''}"
+                              data-action="select-role"
+                              data-role="${escapeHtml(role)}"
+                            >
+                              ${escapeHtml(role)}
+                            </button>
+                          `
+                        )
+                        .join('')}
+                    </div>
                   </div>
 
                   <div class="actions actions--stack">
@@ -886,24 +832,24 @@ export class AppController {
                   <div class="actions actions--stack">
                     ${
                       eventConfig.enableGoogleAuth
-                        ? '<button class="button button--primary button--lg" data-action="auth-google" type="button">Sign in with Google to claim</button>'
+                        ? '<button class="button button--primary button--lg" data-action="auth-google" type="button">Unlock with Google</button>'
                         : ''
                     }
-                    <button class="button button--ghost${eventConfig.enableGoogleAuth ? '' : ' button--lg'}" data-action="replay" type="button">Play again</button>
+                    <button class="button button--primary${eventConfig.enableGoogleAuth ? ' button--ghost' : ' button--lg'}" data-action="replay" type="button">Play again</button>
                   </div>
                   <form class="auth-form" data-action="magic-link">
                     <label>
-                      Or use a magic link
+                      Unlock with magic link
                       <input name="email" type="email" placeholder="you@company.com" required />
                     </label>
-                    <button class="button button--ghost button--wide" type="submit">Send link</button>
+                    <button class="button button--ghost button--wide" type="submit">Send unlock link</button>
                   </form>
                   <p class="helper-copy">
                     ${
                       authService.isDemoMode()
                         ? 'Demo auth mode is active locally.'
                         : eventConfig.enableGoogleAuth
-                          ? 'Takes 5 seconds on the event floor.'
+                          ? 'Google is the fastest path on the event floor.'
                           : 'Magic link is enabled.'
                     }
                   </p>

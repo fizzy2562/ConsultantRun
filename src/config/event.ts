@@ -13,13 +13,13 @@ export const eventConfig = {
     myBest: 'My best',
   },
   landing: {
-    title: 'Jump the blockers. Top the board.',
-    concept: 'Pick a sponsor, enter your name, get 3 lives. Can you reach Go Live?',
+    title: 'Can you get the project live?',
+    concept: 'Jump the hurdles. Beat the room. Unlock your score.',
     teaser: 'Top scores are moving fast today.',
   },
   resultCopy: {
-    lockedTitle: 'Claim your result',
-    lockedBody: 'Sign in to lock in your score and claim a prize at the ConsultantCloud stand.',
+    lockedTitle: 'Unlock your full result',
+    lockedBody: 'See your score, rank, prize status, and the ConsultantCloud handoff.',
   },
   roleOptions: [
     'Salesforce Admin',
@@ -28,5 +28,5 @@ export const eventConfig = {
     'Architect',
     'Not sure yet',
   ] as RoleIntent[],
-  premiumCtaLabel: 'Find out more about ConsultantCloud',
+  premiumCtaLabel: 'Start your 14-day access',
 };

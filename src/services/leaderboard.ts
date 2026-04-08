@@ -129,7 +129,7 @@ async function submitWithSupabase(
   const payload = {
     p_anonymous_session_id: session.anonymousSessionId,
     p_user_id: user.id,
-    p_display_name: run.displayName || user.displayName,
+    p_display_name: user.displayName,
     p_score: run.score,
     p_stage_reached: run.stageReached,
     p_distance: run.distance,
@@ -155,7 +155,7 @@ async function submitWithSupabase(
     .insert({
       anonymous_session_id: session.anonymousSessionId,
       user_id: user.id,
-      display_name: run.displayName || user.displayName,
+      display_name: user.displayName,
       score: run.score,
       stage_reached: run.stageReached,
       distance: run.distance,
@@ -225,7 +225,7 @@ export const leaderboardService = {
       createdAt,
       anonymousSessionId: session.anonymousSessionId,
       userId: user.id,
-      displayName: run.displayName || user.displayName,
+      displayName: user.displayName,
       score: run.score,
       stageReached: run.stageReached,
       distance: run.distance,

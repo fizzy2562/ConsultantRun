@@ -50,8 +50,6 @@ export class PlayScene extends Phaser.Scene {
 
   private characterKey = '';
 
-  private displayName = '';
-
   private jumpCount = 0;
 
   private isE2EMode = false;
@@ -62,9 +60,8 @@ export class PlayScene extends Phaser.Scene {
     super('PlayScene');
   }
 
-  init(data: { characterKey?: string; displayName?: string }): void {
+  init(data: { characterKey?: string }): void {
     this.characterKey = data.characterKey ?? '';
-    this.displayName = data.displayName ?? '';
     this.isE2EMode =
       typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2e') === '1';
     this.currentSpeed = difficultyConfig.initialSpeed;
@@ -180,6 +177,7 @@ export class PlayScene extends Phaser.Scene {
     this.obstacles.getChildren().forEach((entry) => {
       const obstacle = entry as Obstacle;
       obstacle.x -= this.currentSpeed * obstacle.definition.speedModifier * (delta / 1000);
+      obstacle.syncLabel();
 
       if (obstacle.x < -obstacle.displayWidth) {
         this.obstacleClears += 1;
@@ -256,7 +254,6 @@ export class PlayScene extends Phaser.Scene {
       stageReached: this.currentStage,
       obstacleClears: this.obstacleClears,
       characterKey: this.characterKey,
-      displayName: this.displayName || 'Consultant',
     };
 
     this.time.delayedCall(500, () => {
