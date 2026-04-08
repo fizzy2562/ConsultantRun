@@ -224,7 +224,7 @@ export class AppController {
         this.state.bestPendingRun = null;
         this.state.pendingRun = null;
         clearPendingRun();
-        this.openCharacterSelect();
+        void this.startPlay();
         return;
       }
 

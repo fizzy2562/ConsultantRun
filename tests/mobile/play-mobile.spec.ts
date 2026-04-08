@@ -35,7 +35,7 @@ test('mobile tap on the canvas triggers a jump', async ({ page }) => {
   expect(after.playScene?.jumpCount).toBeGreaterThan(before.playScene?.jumpCount ?? 0);
 });
 
-test('mobile replay returns the player to sponsor select after a result', async ({ page }) => {
+test('mobile replay restarts the game with the same sponsor after a result', async ({ page }) => {
   await startRun(page, 'runner-delaware');
 
   // The debug helper waits until the app has either restarted into a new run
@@ -46,8 +46,11 @@ test('mobile replay returns the player to sponsor select after a result', async 
   await waitForScreen(page, 'result');
 
   await page.locator('[data-action="replay"]').click();
-  await waitForScreen(page, 'character-select');
+  await waitForScreen(page, 'play');
 
   const state = await getDebugState(page);
   expect(state.selectedCharacter).toBe('runner-delaware');
+  expect(state.livesRemaining).toBe(3);
+  expect(state.playScene?.characterKey).toBe('runner-delaware');
+  expect(state.playScene?.isGameOver).toBe(false);
 });
