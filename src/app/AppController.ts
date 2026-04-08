@@ -377,6 +377,8 @@ export class AppController {
   }
 
   private render(): void {
+    this.overlayRoot.dataset.screen = this.state.screen;
+
     if (this.state.screen === 'play') {
       this.overlayRoot.innerHTML = this.renderPlayOverlay();
       return;

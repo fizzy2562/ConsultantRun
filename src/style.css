@@ -159,12 +159,14 @@ a {
 .game-panel__canvas {
   display: grid;
   place-items: center;
+  touch-action: none;
 }
 
 .game-panel__canvas canvas {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  touch-action: none;
 }
 
 .overlay-root {
@@ -172,9 +174,26 @@ a {
   align-items: stretch;
   padding: 18px;
   pointer-events: none;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .overlay-root > * {
+  pointer-events: auto;
+}
+
+.overlay-root[data-screen="menu"],
+.overlay-root[data-screen="character-select"],
+.overlay-root[data-screen="result"] {
+  overflow-y: auto;
+}
+
+.overlay-root[data-screen="play"] > * {
+  pointer-events: none;
+}
+
+.overlay-root[data-screen="play"] button {
   pointer-events: auto;
 }
 
@@ -494,6 +513,10 @@ pre {
     align-content: space-between;
   }
 
+  .overlay-root[data-screen="character-select"] {
+    align-items: start;
+  }
+
   .overlay-card--floating {
     max-width: none;
   }
@@ -523,6 +546,7 @@ pre {
 .overlay-layout--character-select {
   display: flex;
   justify-content: center;
+  min-height: auto;
 }
 
 .overlay-column--wide {
