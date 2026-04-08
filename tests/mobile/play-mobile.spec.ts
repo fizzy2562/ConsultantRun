@@ -38,6 +38,11 @@ test('mobile tap on the canvas triggers a jump', async ({ page }) => {
 test('mobile replay returns the player to sponsor select after a result', async ({ page }) => {
   await startRun(page, 'runner-delaware');
 
+  // Exhaust all 3 lives before the result screen appears
+  await page.evaluate(() => window.__consultantRunDebug?.forceFinishRun());
+  await waitForScreen(page, 'play');
+  await page.evaluate(() => window.__consultantRunDebug?.forceFinishRun());
+  await waitForScreen(page, 'play');
   await page.evaluate(() => window.__consultantRunDebug?.forceFinishRun());
   await waitForScreen(page, 'result');
 

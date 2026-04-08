@@ -11,6 +11,7 @@ export interface PlaySceneDebugState {
 export interface AppDebugState {
   authMessage: string | null;
   isLoading: boolean;
+  livesRemaining: number;
   pendingRunScore: number | null;
   playScene: PlaySceneDebugState | null;
   screen: 'menu' | 'character-select' | 'play' | 'result';

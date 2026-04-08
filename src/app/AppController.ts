@@ -34,7 +34,7 @@ interface ViewState {
   screen: 'menu' | 'character-select' | 'play' | 'result';
   selectedCharacter: string;
   livesRemaining: number;
-  bestScore: number;
+  bestPendingRun: PendingRun | null;
   isLeaderboardOpen: boolean;
   session: EventSessionContext | null;
   pendingRun: PendingRun | null;
@@ -150,7 +150,7 @@ export class AppController {
     screen: 'menu',
     selectedCharacter: characters[0].key,
     livesRemaining: TOTAL_LIVES,
-    bestScore: 0,
+    bestPendingRun: null,
     isLeaderboardOpen: false,
     session: null,
     pendingRun: null,
@@ -221,7 +221,7 @@ export class AppController {
       // Replay: reset lives and go back to character select for a fresh attempt
       if (action === 'replay') {
         this.state.livesRemaining = TOTAL_LIVES;
-        this.state.bestScore = 0;
+        this.state.bestPendingRun = null;
         this.state.pendingRun = null;
         clearPendingRun();
         this.openCharacterSelect();
@@ -321,9 +321,9 @@ export class AppController {
   }
 
   private async handleRunEnded(pendingRun: PendingRun): Promise<void> {
-    // Track best score across lives
-    if (pendingRun.score > this.state.bestScore) {
-      this.state.bestScore = pendingRun.score;
+    // Track the run with the highest score across all lives
+    if (!this.state.bestPendingRun || pendingRun.score > this.state.bestPendingRun.score) {
+      this.state.bestPendingRun = pendingRun;
     }
 
     this.state.livesRemaining -= 1;
@@ -338,23 +338,23 @@ export class AppController {
       return;
     }
 
-    // All lives used — show final result
-    savePendingRun(pendingRun);
-    this.state.pendingRun = pendingRun;
+    // All lives used — save and submit the best run, not the last one
+    const bestRun = this.state.bestPendingRun ?? pendingRun;
+    savePendingRun(bestRun);
+    this.state.pendingRun = bestRun;
     this.state.submittedScore = null;
     this.state.screen = 'result';
     this.state.authMessage = null;
     this.state.loading = false;
 
     trackEvent('game_over', {
-      score: pendingRun.score,
-      best_score: this.state.bestScore,
-      stage: pendingRun.stageReached,
-      duration_ms: pendingRun.durationMs,
-      obstacle_clears: pendingRun.obstacleClears,
+      score: bestRun.score,
+      stage: bestRun.stageReached,
+      duration_ms: bestRun.durationMs,
+      obstacle_clears: bestRun.obstacleClears,
     });
 
-    this.game.scene.start('ResultScene', { pendingRun });
+    this.game.scene.start('ResultScene', { pendingRun: bestRun });
     await this.refreshLeaderboards();
 
     if (this.state.user) {
@@ -686,7 +686,7 @@ export class AppController {
     const fullScore = this.state.submittedScore?.score ?? null;
     const rank = this.state.submittedScore?.rank ?? null;
     const percentile = this.state.submittedScore?.percentile ?? null;
-    const displayScore = this.state.bestScore > 0 ? this.state.bestScore : (score?.score ?? 0);
+    const displayScore = score?.score ?? 0;
     const character = characterByKey.get(this.state.selectedCharacter);
     const productUrl = buildCtaUrl(eventConfig.consultantCloudCtaUrl, {
       source: 'consultantrun',
