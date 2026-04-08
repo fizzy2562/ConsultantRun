@@ -28,7 +28,8 @@ create table if not exists public.scores (
   utm_campaign text null,
   utm_content text null,
   device_type text null,
-  auth_method text null
+  auth_method text null,
+  character_key text null
 );
 
 create table if not exists public.prize_claims (
@@ -110,7 +111,8 @@ create or replace function public.submit_score_secure(
   p_utm_campaign text default null,
   p_utm_content text default null,
   p_device_type text default null,
-  p_auth_method text default null
+  p_auth_method text default null,
+  p_character_key text default null
 )
 returns setof public.scores
 language plpgsql
@@ -150,7 +152,8 @@ begin
     utm_campaign,
     utm_content,
     device_type,
-    auth_method
+    auth_method,
+    character_key
   )
   values (
     p_user_id,
@@ -166,7 +169,8 @@ begin
     p_utm_campaign,
     p_utm_content,
     p_device_type,
-    p_auth_method
+    p_auth_method,
+    p_character_key
   )
   returning * into inserted;
 
@@ -188,6 +192,7 @@ revoke all on function public.submit_score_secure(
   text,
   text,
   text,
+  text,
   text
 ) from public;
 
@@ -198,6 +203,7 @@ grant execute on function public.submit_score_secure(
   integer,
   text,
   integer,
+  text,
   text,
   text,
   text,

@@ -43,6 +43,8 @@ interface ViewState {
   roleIntent: RoleIntent | null;
 }
 
+const characterLabelByKey = new Map(characters.map((c) => [c.key, c.label]));
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
@@ -66,7 +68,7 @@ function formatLeaderboard(entries: LeaderboardEntry[]): string {
               <span class="leaderboard-rank">#${entry.rank}</span>
               <div class="leaderboard__meta">
                 <span class="leaderboard__name">${escapeHtml(entry.displayName)}</span>
-                <span class="leaderboard__subline">${escapeHtml(entry.stageReached)} · ${entry.percentile}% percentile</span>
+                <span class="leaderboard__subline">${escapeHtml(entry.stageReached)} · ${entry.percentile}% percentile${entry.characterKey ? ` · ${escapeHtml(characterLabelByKey.get(entry.characterKey) ?? entry.characterKey)}` : ''}</span>
               </div>
               <span class="leaderboard__score">${entry.score}</span>
             </li>
