@@ -73,6 +73,7 @@ export type SponsorTier = 'Platinum' | 'Groundbreakers' | 'Navigators';
 export interface CharacterDefinition {
   key: string;
   label: string;
+  logoMark: string;
   tier: SponsorTier;
   palette: CharacterPalette;
 }

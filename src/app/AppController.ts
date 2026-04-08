@@ -31,6 +31,7 @@ interface AppControllerOptions {
 interface ViewState {
   screen: 'menu' | 'character-select' | 'play' | 'result';
   selectedCharacter: string;
+  isLeaderboardOpen: boolean;
   session: EventSessionContext | null;
   pendingRun: PendingRun | null;
   submittedScore: LeaderboardEntry | null;
@@ -44,7 +45,40 @@ interface ViewState {
   roleIntent: RoleIntent | null;
 }
 
-const characterLabelByKey = new Map(characters.map((c) => [c.key, c.label]));
+const characterByKey = new Map(characters.map((c) => [c.key, c]));
+
+function toHex(value: number): string {
+  return `#${value.toString(16).padStart(6, '0')}`;
+}
+
+function renderCompanyBadge(characterKey: string | null | undefined): string {
+  if (!characterKey) {
+    return '';
+  }
+
+  const character = characterByKey.get(characterKey);
+
+  if (!character) {
+    return `
+      <span class="leaderboard__company">
+        <span class="leaderboard__logo leaderboard__logo--fallback">${escapeHtml(characterKey)}</span>
+        <span class="leaderboard__company-name">${escapeHtml(characterKey)}</span>
+      </span>
+    `;
+  }
+
+  return `
+    <span class="leaderboard__company">
+      <span
+        class="leaderboard__logo"
+        style="background:${escapeHtml(toHex(character.palette.body))};color:${escapeHtml(toHex(character.palette.accent))};border-color:${escapeHtml(toHex(character.palette.accent))};"
+      >
+        ${escapeHtml(character.logoMark)}
+      </span>
+      <span class="leaderboard__company-name">${escapeHtml(character.label)}</span>
+    </span>
+  `;
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -69,7 +103,8 @@ function formatLeaderboard(entries: LeaderboardEntry[]): string {
               <span class="leaderboard-rank">#${entry.rank}</span>
               <div class="leaderboard__meta">
                 <span class="leaderboard__name">${escapeHtml(entry.displayName)}</span>
-                <span class="leaderboard__subline">${escapeHtml(entry.stageReached)} · ${entry.percentile}% percentile${entry.characterKey ? ` · ${escapeHtml(characterLabelByKey.get(entry.characterKey) ?? entry.characterKey)}` : ''}</span>
+                ${renderCompanyBadge(entry.characterKey)}
+                <span class="leaderboard__subline">${escapeHtml(entry.stageReached)} · Top ${entry.percentile}% today</span>
               </div>
               <span class="leaderboard__score">${entry.score}</span>
             </li>
@@ -104,6 +139,7 @@ export class AppController {
   private state: ViewState = {
     screen: 'menu',
     selectedCharacter: characters[0].key,
+    isLeaderboardOpen: false,
     session: null,
     pendingRun: null,
     submittedScore: null,
@@ -169,14 +205,12 @@ export class AppController {
       audioSystem.play('cta');
 
       if (action === 'play') {
-        this.state.screen = 'character-select';
-        this.render();
+        this.openCharacterSelect();
         return;
       }
 
       if (action === 'replay') {
-        this.state.screen = 'character-select';
-        this.render();
+        this.openCharacterSelect();
         return;
       }
 
@@ -196,6 +230,12 @@ export class AppController {
 
       if (action === 'toggle-mute') {
         audioSystem.toggleMute();
+        this.render();
+        return;
+      }
+
+      if (action === 'toggle-leaderboard') {
+        this.state.isLeaderboardOpen = !this.state.isLeaderboardOpen;
         this.render();
         return;
       }
@@ -255,6 +295,7 @@ export class AppController {
 
   private async startPlay(): Promise<void> {
     this.state.screen = 'play';
+    this.state.isLeaderboardOpen = false;
     this.state.authMessage = null;
     this.state.submittedScore = null;
     this.state.pendingRun = null;
@@ -372,7 +413,18 @@ export class AppController {
 
   private showMenu(): void {
     this.state.screen = 'menu';
+    this.state.isLeaderboardOpen = false;
     this.state.loading = false;
+    this.game.scene.start('MenuScene');
+    this.render();
+  }
+
+  private openCharacterSelect(): void {
+    this.state.screen = 'character-select';
+    this.state.isLeaderboardOpen = false;
+    this.state.authMessage = null;
+    this.state.loading = false;
+    this.state.submittedScore = null;
     this.game.scene.start('MenuScene');
     this.render();
   }
@@ -462,6 +514,7 @@ export class AppController {
               >
                 <div class="character-card__avatar" style="background:${bodyHex};border-color:${accentHex};">
                   <div class="character-card__stripe" style="background:${accentHex};"></div>
+                  <span class="character-card__mark" style="color:${accentHex};">${escapeHtml(c.logoMark)}</span>
                 </div>
                 <span class="character-card__name">${escapeHtml(c.label)}</span>
               </button>
@@ -524,7 +577,9 @@ export class AppController {
 
             <div class="actions">
               <button class="button button--primary" data-action="play" type="button">Play now</button>
-              <span class="status-chip">Top scores today at Agentforce</span>
+              <button class="button button--ghost" data-action="toggle-leaderboard" type="button">
+                ${this.state.isLeaderboardOpen ? 'Hide top scores' : 'Top scores today'}
+              </button>
             </div>
 
             <p class="helper-copy">
@@ -532,13 +587,32 @@ export class AppController {
             </p>
           </article>
 
+          ${
+            this.state.isLeaderboardOpen
+              ? `
+                <article class="overlay-card overlay-card--compact leaderboard leaderboard--drawer">
+                  <div class="leaderboard__header">
+                    <div>
+                      <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
+                      <h3>Top scores today</h3>
+                    </div>
+                    <button class="button button--subtle button--ghost" data-action="toggle-leaderboard" type="button">
+                      Close
+                    </button>
+                  </div>
+                  ${formatLeaderboard(this.state.dailyLeaderboard)}
+                </article>
+              `
+              : ''
+          }
+
           <article class="overlay-card overlay-card--compact play-hint">
             <strong>One hand. One jump.</strong>
             <p>Tap anywhere on mobile or hit space on desktop to clear project blockers.</p>
           </article>
         </div>
 
-        <aside class="overlay-card leaderboard">
+        <aside class="overlay-card leaderboard leaderboard--sidebar">
           <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
           <h3>Room pace</h3>
           ${formatLeaderboard(this.state.dailyLeaderboard)}

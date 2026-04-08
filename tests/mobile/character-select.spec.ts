@@ -34,3 +34,14 @@ test('character select remains scrollable on mobile and lower sponsors are reach
   await expect(lastSponsor).toBeVisible();
   await expect(lastSponsor).toBeEnabled();
 });
+
+test('top scores drawer opens from the mobile menu', async ({ page }) => {
+  await page.goto('/?e2e=1');
+
+  await expect(page.locator('#overlay-root')).toHaveAttribute('data-screen', 'menu');
+  await page.locator('[data-action="toggle-leaderboard"]').click();
+
+  await expect(page.getByRole('heading', { name: 'Top scores today' })).toBeVisible();
+  await expect(page.locator('.leaderboard--drawer')).toBeVisible();
+  await expect(page.locator('.leaderboard--drawer ol, .leaderboard--drawer .helper-copy')).toBeVisible();
+});
