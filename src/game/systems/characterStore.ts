@@ -1,11 +1,10 @@
 import { characters } from '../../config/game';
-
-let activeCharacterKey: string = characters[0].key;
+import { getSelectedCharacter, saveSelectedCharacter } from '../../services/storage';
 
 export function setActiveCharacter(key: string): void {
-  activeCharacterKey = key;
+  saveSelectedCharacter(key);
 }
 
 export function getActiveCharacter(): string {
-  return activeCharacterKey;
+  return getSelectedCharacter() ?? characters[0].key;
 }

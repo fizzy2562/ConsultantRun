@@ -32,6 +32,7 @@ export interface PendingRun {
   durationMs: number;
   stageReached: StageReached;
   obstacleClears: number;
+  characterKey: string;
 }
 
 export interface SubmittedScore {
@@ -46,6 +47,7 @@ export interface SubmittedScore {
   eventName: string;
   prizeStatus: string;
   authMethod: AuthMethod | null;
+  characterKey: string;
 }
 
 export interface LeaderboardEntry extends SubmittedScore {

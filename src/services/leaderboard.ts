@@ -36,6 +36,7 @@ function normalizeScore(record: Record<string, unknown>): SubmittedScore {
       (record.auth_method as AuthMethod | null | undefined) ??
       (record.authMethod as AuthMethod | null | undefined) ??
       null,
+    characterKey: String(record.character_key ?? record.characterKey ?? ''),
   };
 }
 
@@ -139,6 +140,7 @@ async function submitWithSupabase(
     p_utm_content: session.utm.utmContent,
     p_device_type: getDeviceType(),
     p_auth_method: authMethod,
+    p_character_key: run.characterKey,
   };
 
   const rpcResult = await supabase.rpc('submit_score_secure', payload);
@@ -165,6 +167,7 @@ async function submitWithSupabase(
       utm_content: session.utm.utmContent,
       device_type: getDeviceType(),
       auth_method: authMethod,
+      character_key: run.characterKey,
     })
     .select()
     .single();
@@ -229,6 +232,7 @@ export const leaderboardService = {
       eventName: session.eventName,
       prizeStatus: 'unclaimed',
       authMethod,
+      characterKey: run.characterKey,
     };
 
     const nextScores = [...localScores, submitted];

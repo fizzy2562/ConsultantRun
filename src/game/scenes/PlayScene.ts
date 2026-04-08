@@ -208,6 +208,7 @@ export class PlayScene extends Phaser.Scene {
       durationMs: runState.elapsedMs,
       stageReached: this.currentStage,
       obstacleClears: this.obstacleClears,
+      characterKey: this.characterKey,
     };
 
     this.time.delayedCall(500, () => {

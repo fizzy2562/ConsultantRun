@@ -10,6 +10,7 @@ export const storageKeys = {
   scores: `${PREFIX}:scores`,
   lastSubmittedAt: `${PREFIX}:last-submitted-at`,
   mute: `${PREFIX}:mute`,
+  selectedCharacter: `${PREFIX}:selected-character`,
 };
 
 export function readJson<T>(key: string): T | null {
@@ -105,4 +106,12 @@ export function getMutePreference(): boolean {
 
 export function saveMutePreference(isMuted: boolean): void {
   window.localStorage.setItem(storageKeys.mute, isMuted ? '1' : '0');
+}
+
+export function getSelectedCharacter(): string | null {
+  return window.localStorage.getItem(storageKeys.selectedCharacter);
+}
+
+export function saveSelectedCharacter(key: string): void {
+  window.localStorage.setItem(storageKeys.selectedCharacter, key);
 }

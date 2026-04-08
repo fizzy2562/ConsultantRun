@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { eventConfig } from '../config/event';
 import { characters } from '../config/game';
 import { createGame } from '../game/createGame';
-import { setActiveCharacter } from '../game/systems/characterStore';
+import { getActiveCharacter, setActiveCharacter } from '../game/systems/characterStore';
 import { audioSystem } from '../game/systems/AudioSystem';
 import { authService } from '../services/auth';
 import { trackEvent } from '../services/analytics';
@@ -129,6 +129,17 @@ export class AppController {
     this.state.user = await authService.restoreSession();
     this.state.authMethod = authService.getMethod();
     this.state.pendingRun = getPendingRun();
+
+    // Restore the selected character from the most authoritative source available.
+    // pendingRun.characterKey is written at game-over time and survives the auth
+    // redirect; fall back to the localStorage preference set at character-select time.
+    if (this.state.pendingRun?.characterKey) {
+      this.state.selectedCharacter = this.state.pendingRun.characterKey;
+      setActiveCharacter(this.state.pendingRun.characterKey);
+    } else {
+      const stored = getActiveCharacter();
+      this.state.selectedCharacter = stored;
+    }
 
     await this.refreshLeaderboards();
 
