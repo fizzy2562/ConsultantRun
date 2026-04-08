@@ -1,60 +1,53 @@
-import './style.css'
-import typescriptLogo from './assets/typescript.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import { setupCounter } from './counter.ts'
+import './style.css';
+import { AppController } from './app/AppController';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${typescriptLogo}" class="framework" alt="TypeScript logo"/>
-    <img src=${viteLogo} class="vite" alt="Vite logo" />
+const appRoot = document.querySelector<HTMLDivElement>('#app');
+
+if (!appRoot) {
+  throw new Error('App root not found');
+}
+
+appRoot.innerHTML = `
+  <div class="app-shell">
+    <div class="background-orb orb-left"></div>
+    <div class="background-orb orb-right"></div>
+    <header class="brand-bar">
+      <div class="brand-mark">
+        <span class="brand-mark__dot"></span>
+        <div>
+          <p class="eyebrow">ConsultantCloud Event Microsite</p>
+          <h1>ConsultantRun</h1>
+        </div>
+      </div>
+      <p class="brand-bar__copy">Get the project live. Beat the room. Unlock your score.</p>
+    </header>
+
+    <main class="experience-shell">
+      <section class="game-panel">
+        <div id="phaser-root" class="game-panel__canvas"></div>
+        <div id="overlay-root" class="overlay-root"></div>
+      </section>
+    </main>
   </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.ts</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+`;
 
-<div class="ticks"></div>
+const controller = new AppController({
+  overlayRoot: document.querySelector<HTMLElement>('#overlay-root'),
+  phaserRootId: 'phaser-root',
+});
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src=${viteLogo} alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://www.typescriptlang.org" target="_blank">
-          <img class="button-icon" src="${typescriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+controller.init().catch((error) => {
+  console.error(error);
 
-<div class="ticks"></div>
-<section id="spacer"></section>
-`
-
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+  const overlayRoot = document.querySelector<HTMLElement>('#overlay-root');
+  if (overlayRoot) {
+    overlayRoot.innerHTML = `
+      <section class="overlay-card overlay-card--error">
+        <p class="eyebrow">ConsultantRun</p>
+        <h2>Something blocked the launch</h2>
+        <p>The app failed to start cleanly. Reload the page to retry.</p>
+        <pre>${error instanceof Error ? error.message : 'Unknown error'}</pre>
+      </section>
+    `;
+  }
+});
