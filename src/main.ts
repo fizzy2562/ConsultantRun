@@ -5,7 +5,7 @@ declare global {
   interface Window {
     __consultantRunDebug?: {
       destroyApp: () => void;
-      forceFinishRun: () => void;
+      forceFinishRun: () => Promise<void>;
       getState: () => unknown;
     };
   }

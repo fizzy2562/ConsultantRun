@@ -12,6 +12,8 @@ import { createSceneBackdrop, type BackdropLayers } from '../systems/SceneBackdr
 import { SpawnSystem } from '../systems/SpawnSystem';
 
 export class PlayScene extends Phaser.Scene {
+  private static nextInstanceId = 1;
+
   private layers!: BackdropLayers;
 
   private player!: Player;
@@ -52,6 +54,8 @@ export class PlayScene extends Phaser.Scene {
 
   private isE2EMode = false;
 
+  private instanceId = 0;
+
   constructor() {
     super('PlayScene');
   }
@@ -60,9 +64,16 @@ export class PlayScene extends Phaser.Scene {
     this.characterKey = data.characterKey ?? '';
     this.isE2EMode =
       typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2e') === '1';
+    this.currentSpeed = difficultyConfig.initialSpeed;
+    this.currentStage = 'Discovery';
+    this.obstacleClears = 0;
+    this.isGameOver = false;
+    this.jumpCount = 0;
   }
 
   create(): void {
+    this.instanceId = PlayScene.nextInstanceId;
+    PlayScene.nextInstanceId += 1;
     this.layers = createSceneBackdrop(this);
 
     this.ground = this.add
@@ -202,6 +213,7 @@ export class PlayScene extends Phaser.Scene {
 
   getDebugSnapshot(): {
     characterKey: string;
+    instanceId: number;
     isGameOver: boolean;
     jumpCount: number;
     playerY: number | null;
@@ -209,6 +221,7 @@ export class PlayScene extends Phaser.Scene {
   } {
     return {
       characterKey: this.characterKey,
+      instanceId: this.instanceId,
       isGameOver: this.isGameOver,
       jumpCount: this.jumpCount,
       playerY: this.player?.y ?? null,

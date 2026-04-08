@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 
 export interface PlaySceneDebugState {
   characterKey: string;
+  instanceId: number;
   isGameOver: boolean;
   jumpCount: number;
   playerY: number | null;

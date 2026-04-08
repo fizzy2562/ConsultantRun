@@ -474,9 +474,7 @@ export class AppController {
     selectedCharacter: string;
     submittedScore: number | null;
   } {
-    const scene = this.game.scene.getScene('PlayScene');
-    const playScene =
-      scene instanceof PlayScene && scene.scene.isActive() ? scene.getDebugSnapshot() : null;
+    const playScene = this.getActivePlaySceneSnapshot();
 
     return {
       authMessage: this.state.authMessage,
@@ -490,12 +488,17 @@ export class AppController {
     };
   }
 
-  forceFinishRunForTest(): void {
-    const scene = this.game.scene.getScene('PlayScene');
+  async forceFinishRunForTest(): Promise<void> {
+    const current = this.getDebugState();
+    const currentInstanceId = current.playScene?.instanceId ?? 0;
+    const activeScene = this.getActivePlayScene();
 
-    if (scene instanceof PlayScene && scene.scene.isActive()) {
-      scene.forceFinishForTest();
+    if (!activeScene) {
+      return;
     }
+
+    activeScene.forceFinishForTest();
+    await this.waitForDebugSteadyState(currentInstanceId);
   }
 
   destroyForTest(): void {
@@ -523,6 +526,46 @@ export class AppController {
     }
 
     this.overlayRoot.innerHTML = this.renderMenuOverlay();
+  }
+
+  private getActivePlayScene(): PlayScene | null {
+    try {
+      const scene = this.game.scene.getScene('PlayScene');
+
+      if (!(scene instanceof PlayScene)) {
+        return null;
+      }
+
+      return scene.scene?.isActive?.() ? scene : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private getActivePlaySceneSnapshot(): ReturnType<PlayScene['getDebugSnapshot']> | null {
+    return this.getActivePlayScene()?.getDebugSnapshot() ?? null;
+  }
+
+  private async waitForDebugSteadyState(previousInstanceId: number): Promise<void> {
+    const timeoutAt = Date.now() + 5000;
+
+    while (Date.now() < timeoutAt) {
+      const state = this.getDebugState();
+
+      if (state.screen === 'result') {
+        return;
+      }
+
+      if (state.screen === 'play' && state.playScene && state.playScene.instanceId > previousInstanceId) {
+        return;
+      }
+
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 25);
+      });
+    }
+
+    throw new Error('Timed out waiting for the next play or result state.');
   }
 
   private renderCharacterSelectOverlay(): string {
