@@ -24,12 +24,9 @@ appRoot.innerHTML = `
     <header class="brand-bar">
       <div class="brand-mark">
         <span class="brand-mark__dot"></span>
-        <div>
-          <p class="eyebrow">ConsultantCloud Event Microsite</p>
-          <h1>ConsultantRun</h1>
-        </div>
+        <h1>ConsultantRun</h1>
       </div>
-      <p class="brand-bar__copy">Get the project live. Beat the room. Unlock your score.</p>
+      <p class="brand-bar__copy">Agentforce World Tour Belgium 2026</p>
     </header>
 
     <main class="experience-shell">

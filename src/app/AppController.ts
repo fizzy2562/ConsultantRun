@@ -23,6 +23,8 @@ import type {
   UserIdentity,
 } from '../types/app';
 
+const TOTAL_LIVES = 3;
+
 interface AppControllerOptions {
   overlayRoot: HTMLElement | null;
   phaserRootId: string;
@@ -31,6 +33,8 @@ interface AppControllerOptions {
 interface ViewState {
   screen: 'menu' | 'character-select' | 'play' | 'result';
   selectedCharacter: string;
+  livesRemaining: number;
+  bestScore: number;
   isLeaderboardOpen: boolean;
   session: EventSessionContext | null;
   pendingRun: PendingRun | null;
@@ -49,6 +53,12 @@ const characterByKey = new Map(characters.map((c) => [c.key, c]));
 
 function toHex(value: number): string {
   return `#${value.toString(16).padStart(6, '0')}`;
+}
+
+function renderLivesDots(remaining: number, total: number): string {
+  return Array.from({ length: total })
+    .map((_, i) => `<span class="lives-dot${i < remaining ? ' lives-dot--active' : ''}"></span>`)
+    .join('');
 }
 
 function renderCompanyBadge(characterKey: string | null | undefined): string {
@@ -91,7 +101,7 @@ function escapeHtml(value: string): string {
 
 function formatLeaderboard(entries: LeaderboardEntry[]): string {
   if (!entries.length) {
-    return '<p class="helper-copy">No scores have landed yet. Set the pace.</p>';
+    return '<p class="helper-copy">No scores yet. Be first.</p>';
   }
 
   return `
@@ -139,6 +149,8 @@ export class AppController {
   private state: ViewState = {
     screen: 'menu',
     selectedCharacter: characters[0].key,
+    livesRemaining: TOTAL_LIVES,
+    bestScore: 0,
     isLeaderboardOpen: false,
     session: null,
     pendingRun: null,
@@ -169,9 +181,6 @@ export class AppController {
     this.state.authMethod = authService.getMethod();
     this.state.pendingRun = getPendingRun();
 
-    // Restore the selected character from the most authoritative source available.
-    // pendingRun.characterKey is written at game-over time and survives the auth
-    // redirect; fall back to the localStorage preference set at character-select time.
     if (this.state.pendingRun?.characterKey) {
       this.state.selectedCharacter = this.state.pendingRun.characterKey;
       setActiveCharacter(this.state.pendingRun.characterKey);
@@ -209,7 +218,12 @@ export class AppController {
         return;
       }
 
+      // Replay: reset lives and go back to character select for a fresh attempt
       if (action === 'replay') {
+        this.state.livesRemaining = TOTAL_LIVES;
+        this.state.bestScore = 0;
+        this.state.pendingRun = null;
+        clearPendingRun();
         this.openCharacterSelect();
         return;
       }
@@ -307,6 +321,24 @@ export class AppController {
   }
 
   private async handleRunEnded(pendingRun: PendingRun): Promise<void> {
+    // Track best score across lives
+    if (pendingRun.score > this.state.bestScore) {
+      this.state.bestScore = pendingRun.score;
+    }
+
+    this.state.livesRemaining -= 1;
+
+    if (this.state.livesRemaining > 0) {
+      // Still have lives left — restart immediately, keep the HUD showing lives
+      this.state.screen = 'play';
+      this.render();
+      // Brief delay so the fail animation is visible before restart
+      await new Promise<void>((resolve) => { setTimeout(resolve, 900); });
+      this.game.scene.start('PlayScene', { characterKey: this.state.selectedCharacter });
+      return;
+    }
+
+    // All lives used — show final result
     savePendingRun(pendingRun);
     this.state.pendingRun = pendingRun;
     this.state.submittedScore = null;
@@ -316,6 +348,7 @@ export class AppController {
 
     trackEvent('game_over', {
       score: pendingRun.score,
+      best_score: this.state.bestScore,
       stage: pendingRun.stageReached,
       duration_ms: pendingRun.durationMs,
       obstacle_clears: pendingRun.obstacleClears,
@@ -432,6 +465,7 @@ export class AppController {
   getDebugState(): {
     authMessage: string | null;
     isLoading: boolean;
+    livesRemaining: number;
     pendingRunScore: number | null;
     playScene: ReturnType<PlayScene['getDebugSnapshot']> | null;
     screen: ViewState['screen'];
@@ -445,6 +479,7 @@ export class AppController {
     return {
       authMessage: this.state.authMessage,
       isLoading: this.state.loading,
+      livesRemaining: this.state.livesRemaining,
       pendingRunScore: this.state.pendingRun?.score ?? null,
       playScene,
       screen: this.state.screen,
@@ -524,7 +559,7 @@ export class AppController {
 
         return `
           <div class="character-tier">
-            <p class="eyebrow">${escapeHtml(label)}</p>
+            <p class="eyebrow character-tier__label">${escapeHtml(label)}</p>
             <div class="character-grid">${cards}</div>
           </div>
         `;
@@ -536,16 +571,17 @@ export class AppController {
         <div class="overlay-column overlay-column--wide">
           <article class="overlay-card overlay-card--floating">
             <div class="top-bar">
-              <span class="event-chip">${escapeHtml(eventConfig.eventBadge)}</span>
-              <button class="button button--subtle button--ghost" data-action="toggle-mute" type="button">
+              <div>
+                <span class="event-chip">${escapeHtml(eventConfig.eventBadge)}</span>
+              </div>
+              <button class="button button--ghost button--sm" data-action="toggle-mute" type="button">
                 ${audioSystem.isMuted() ? 'Sound off' : 'Sound on'}
               </button>
             </div>
 
             <div class="overlay-headline">
-              <p class="eyebrow">Choose your team</p>
               <h2>Who are you running for?</h2>
-              <p>Pick a sponsor partner and represent them on the leaderboard.</p>
+              <p>Pick your sponsor. You get ${TOTAL_LIVES} lives to set the best score.</p>
             </div>
 
             ${sections}
@@ -562,29 +598,33 @@ export class AppController {
           <article class="overlay-card overlay-card--floating">
             <div class="top-bar">
               <span class="event-chip">${escapeHtml(eventConfig.eventBadge)}</span>
-              <div class="top-bar__actions">
-                <button class="button button--subtle button--ghost" data-action="toggle-mute" type="button">
-                  ${audioSystem.isMuted() ? 'Sound off' : 'Sound on'}
-                </button>
-              </div>
+              <button class="button button--ghost button--sm" data-action="toggle-mute" type="button">
+                ${audioSystem.isMuted() ? 'Sound off' : 'Sound on'}
+              </button>
             </div>
 
             <div class="overlay-headline">
-              <p class="eyebrow">Go Live</p>
               <h2>${escapeHtml(eventConfig.landing.title)}</h2>
               <p>${escapeHtml(eventConfig.landing.concept)}</p>
             </div>
 
-            <div class="actions">
-              <button class="button button--primary" data-action="play" type="button">Play now</button>
+            <div class="actions actions--stack">
+              <button class="button button--primary button--lg" data-action="play" type="button">
+                Play now
+              </button>
               <button class="button button--ghost" data-action="toggle-leaderboard" type="button">
-                ${this.state.isLeaderboardOpen ? 'Hide top scores' : 'Top scores today'}
+                ${this.state.isLeaderboardOpen ? 'Hide leaderboard' : 'See top scores'}
               </button>
             </div>
 
-            <p class="helper-copy">
-              ${escapeHtml(eventConfig.landing.teaser)} Anonymous play is instant. Unlock happens after the run.
-            </p>
+            <p class="helper-copy">${escapeHtml(eventConfig.landing.teaser)}</p>
+          </article>
+
+          <article class="overlay-card overlay-card--compact play-hint">
+            <div class="play-hint__content">
+              <strong>One jump. Three lives.</strong>
+              <p>Tap or press space to jump over project blockers. You get ${TOTAL_LIVES} lives — make them count.</p>
+            </div>
           </article>
 
           ${
@@ -596,7 +636,7 @@ export class AppController {
                       <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
                       <h3>Top scores today</h3>
                     </div>
-                    <button class="button button--subtle button--ghost" data-action="toggle-leaderboard" type="button">
+                    <button class="button button--ghost button--sm" data-action="toggle-leaderboard" type="button">
                       Close
                     </button>
                   </div>
@@ -605,11 +645,6 @@ export class AppController {
               `
               : ''
           }
-
-          <article class="overlay-card overlay-card--compact play-hint">
-            <strong>One hand. One jump.</strong>
-            <p>Tap anywhere on mobile or hit space on desktop to clear project blockers.</p>
-          </article>
         </div>
 
         <aside class="overlay-card leaderboard leaderboard--sidebar">
@@ -622,19 +657,22 @@ export class AppController {
   }
 
   private renderPlayOverlay(): string {
+    const character = characterByKey.get(this.state.selectedCharacter);
+    const accentHex = character ? toHex(character.palette.accent) : '#4da68b';
+
     return `
       <section class="overlay-layout overlay-layout--play">
         <div class="overlay-column">
-          <article class="overlay-card overlay-card--compact play-hint">
-            <div class="top-bar">
-              <div>
-                <p class="eyebrow">${escapeHtml(eventConfig.eventBadge)}</p>
-                <strong>Tap or press space to jump</strong>
+          <article class="overlay-card overlay-card--compact play-hud">
+            <div class="play-hud__left">
+              <div class="lives-display">
+                ${renderLivesDots(this.state.livesRemaining, TOTAL_LIVES)}
               </div>
-              <button class="button button--subtle button--ghost" data-action="toggle-mute" type="button">
-                ${audioSystem.isMuted() ? 'Sound off' : 'Sound on'}
-              </button>
+              ${character ? `<span class="play-hud__sponsor" style="color:${escapeHtml(accentHex)};">${escapeHtml(character.label)}</span>` : ''}
             </div>
+            <button class="button button--ghost button--sm" data-action="toggle-mute" type="button">
+              ${audioSystem.isMuted() ? 'Sound off' : 'Sound on'}
+            </button>
           </article>
         </div>
       </section>
@@ -648,6 +686,8 @@ export class AppController {
     const fullScore = this.state.submittedScore?.score ?? null;
     const rank = this.state.submittedScore?.rank ?? null;
     const percentile = this.state.submittedScore?.percentile ?? null;
+    const displayScore = this.state.bestScore > 0 ? this.state.bestScore : (score?.score ?? 0);
+    const character = characterByKey.get(this.state.selectedCharacter);
     const productUrl = buildCtaUrl(eventConfig.consultantCloudCtaUrl, {
       source: 'consultantrun',
       event_name: this.state.session?.eventName,
@@ -666,18 +706,24 @@ export class AppController {
           <article class="overlay-card overlay-card--floating">
             <div class="top-bar">
               <span class="event-chip">${escapeHtml(eventConfig.eventBadge)}</span>
-              <button class="button button--subtle button--ghost" data-action="toggle-mute" type="button">
+              <button class="button button--ghost button--sm" data-action="toggle-mute" type="button">
                 ${audioSystem.isMuted() ? 'Sound off' : 'Sound on'}
               </button>
             </div>
 
+            ${character ? `
+              <div class="result-sponsor">
+                ${renderCompanyBadge(this.state.selectedCharacter)}
+                <span class="result-sponsor__label">ran for</span>
+              </div>
+            ` : ''}
+
             <div class="overlay-headline">
-              <p class="eyebrow">${this.state.submittedScore ? 'Unlocked result' : 'Result tease'}</p>
-              <h2>${escapeHtml(stage === 'Go Live' ? 'Project landed.' : `Project stalled in ${stage}.`)}</h2>
+              <h2>${escapeHtml(stage === 'Go Live' ? 'Project landed!' : `Stalled in ${stage}.`)}</h2>
               <p>
                 ${
                   this.state.submittedScore
-                    ? 'You unlocked the full result, leaderboard placement, and ConsultantCloud handoff.'
+                    ? 'Result unlocked and on the leaderboard.'
                     : `${escapeHtml(teaserScore)}. ${escapeHtml(eventConfig.resultCopy.lockedBody)}`
                 }
               </p>
@@ -685,12 +731,12 @@ export class AppController {
 
             <div class="stat-grid">
               <article class="stat-card">
-                <span class="stat-card__label">Stage</span>
-                <span class="stat-card__value">${escapeHtml(stage)}</span>
+                <span class="stat-card__label">Best score</span>
+                <span class="stat-card__value">${displayScore}</span>
               </article>
               <article class="stat-card">
-                <span class="stat-card__label">${this.state.submittedScore ? 'Score' : 'Tease'}</span>
-                <span class="stat-card__value">${this.state.submittedScore ? fullScore : 'Locked'}</span>
+                <span class="stat-card__label">Stage</span>
+                <span class="stat-card__value">${escapeHtml(stage)}</span>
               </article>
               <article class="stat-card">
                 <span class="stat-card__label">Rank</span>
@@ -698,7 +744,7 @@ export class AppController {
               </article>
               <article class="stat-card">
                 <span class="stat-card__label">Prize</span>
-                <span class="stat-card__value">${this.state.submittedScore ? 'Reward unlocked' : 'Pending'}</span>
+                <span class="stat-card__value">${this.state.submittedScore ? 'Unlocked' : 'Pending'}</span>
               </article>
             </div>
 
@@ -707,13 +753,6 @@ export class AppController {
                 ? `
                   <div class="result-grid">
                     <span class="status-chip">Top ${percentile}% of players today</span>
-                    <p class="helper-copy">
-                      Best today: ${
-                        this.state.myBest
-                          ? `#${this.state.myBest.rank} with ${this.state.myBest.score}`
-                          : 'waiting for your first stored score'
-                      }.
-                    </p>
                   </div>
 
                   <div class="result-grid">
@@ -736,37 +775,37 @@ export class AppController {
                     </div>
                   </div>
 
-                  <div class="actions">
-                    <button class="button button--ghost" data-action="replay" type="button">Play again</button>
-                    <a class="button button--primary" data-action="product-cta" href="${escapeHtml(productUrl)}">
+                  <div class="actions actions--stack">
+                    <button class="button button--primary button--lg" data-action="replay" type="button">Play again</button>
+                    <a class="button button--ghost" data-action="product-cta" href="${escapeHtml(productUrl)}">
                       ${escapeHtml(eventConfig.premiumCtaLabel)}
                     </a>
-                    <button class="button button--ghost" data-action="sign-out" type="button">Sign out</button>
+                    <button class="button button--ghost button--sm" data-action="sign-out" type="button">Sign out</button>
                   </div>
                 `
                 : `
-                  <div class="actions">
+                  <div class="actions actions--stack">
                     ${
                       eventConfig.enableGoogleAuth
-                        ? '<button class="button button--primary" data-action="auth-google" type="button">Unlock with Google</button>'
+                        ? '<button class="button button--primary button--lg" data-action="auth-google" type="button">Unlock with Google</button>'
                         : ''
                     }
-                    <button class="button button--ghost" data-action="replay" type="button">Play again</button>
+                    <button class="button button--primary${eventConfig.enableGoogleAuth ? ' button--ghost' : ' button--lg'}" data-action="replay" type="button">Play again</button>
                   </div>
                   <form class="auth-form" data-action="magic-link">
                     <label>
                       Unlock with magic link
                       <input name="email" type="email" placeholder="you@company.com" required />
                     </label>
-                    <button class="button button--wide button--ghost" type="submit">Email me the unlock link</button>
+                    <button class="button button--ghost button--wide" type="submit">Send unlock link</button>
                   </form>
                   <p class="helper-copy">
                     ${
                       authService.isDemoMode()
                         ? 'Demo auth mode is active locally.'
                         : eventConfig.enableGoogleAuth
-                          ? 'Google is enabled and magic link is available as the fallback.'
-                          : 'Magic link is enabled. Google can be turned on once OAuth credentials are configured in Supabase.'
+                          ? 'Google is the fastest path on the event floor.'
+                          : 'Magic link is enabled.'
                     }
                   </p>
                 `
@@ -783,7 +822,7 @@ export class AppController {
         <aside class="overlay-column">
           <article class="overlay-card leaderboard">
             <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
-            <h3>Daily leaderboard</h3>
+            <h3>Today's leaderboard</h3>
             ${formatLeaderboard(this.state.dailyLeaderboard)}
           </article>
 
