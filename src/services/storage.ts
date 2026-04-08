@@ -11,6 +11,7 @@ export const storageKeys = {
   lastSubmittedAt: `${PREFIX}:last-submitted-at`,
   mute: `${PREFIX}:mute`,
   selectedCharacter: `${PREFIX}:selected-character`,
+  displayName: `${PREFIX}:display-name`,
 };
 
 export function readJson<T>(key: string): T | null {
@@ -114,4 +115,12 @@ export function getSelectedCharacter(): string | null {
 
 export function saveSelectedCharacter(key: string): void {
   window.localStorage.setItem(storageKeys.selectedCharacter, key);
+}
+
+export function getStoredDisplayName(): string | null {
+  return window.localStorage.getItem(storageKeys.displayName);
+}
+
+export function saveStoredDisplayName(name: string): void {
+  window.localStorage.setItem(storageKeys.displayName, name);
 }
