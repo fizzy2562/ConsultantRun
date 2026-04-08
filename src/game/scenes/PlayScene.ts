@@ -180,6 +180,7 @@ export class PlayScene extends Phaser.Scene {
     this.obstacles.getChildren().forEach((entry) => {
       const obstacle = entry as Obstacle;
       obstacle.x -= this.currentSpeed * obstacle.definition.speedModifier * (delta / 1000);
+      obstacle.syncLabel();
 
       if (obstacle.x < -obstacle.displayWidth) {
         this.obstacleClears += 1;

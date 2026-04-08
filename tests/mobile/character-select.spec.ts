@@ -35,13 +35,11 @@ test('character select remains scrollable on mobile and lower sponsors are reach
   await expect(lastSponsor).toBeEnabled();
 });
 
-test('top scores drawer opens from the mobile menu', async ({ page }) => {
+test('top scores list is visible on the mobile menu without opening a drawer', async ({ page }) => {
   await page.goto('/?e2e=1');
 
   await expect(page.locator('#overlay-root')).toHaveAttribute('data-screen', 'menu');
-  await page.locator('[data-action="toggle-leaderboard"]').click();
-
-  await expect(page.getByRole('heading', { name: 'Top scores today' })).toBeVisible();
-  await expect(page.locator('.leaderboard--drawer')).toBeVisible();
-  await expect(page.locator('.leaderboard--drawer ol, .leaderboard--drawer .helper-copy')).toBeVisible();
+  await expect(page.locator('[data-action="toggle-leaderboard"]')).toHaveCount(0);
+  await expect(page.locator('.leaderboard--mobile')).toBeVisible();
+  await expect(page.locator('.leaderboard--mobile h3')).toContainText(/Can you top this\?|No scores yet/);
 });

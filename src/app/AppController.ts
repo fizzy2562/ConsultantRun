@@ -225,13 +225,13 @@ export class AppController {
         return;
       }
 
-      // Replay: reset lives and go back to character select for a fresh attempt
+      // Replay: reset lives and restart immediately with the same sponsor and name
       if (action === 'replay') {
         this.state.livesRemaining = TOTAL_LIVES;
         this.state.bestPendingRun = null;
         this.state.pendingRun = null;
         clearPendingRun();
-        this.openCharacterSelect();
+        void this.startPlay();
         return;
       }
 
@@ -872,6 +872,26 @@ export class AppController {
                 ? `
                   <div class="result-grid">
                     <span class="status-chip">Top ${percentile}% of players today</span>
+                  </div>
+
+                  <div class="result-grid">
+                    <p class="eyebrow">What are you preparing for?</p>
+                    <div class="role-grid">
+                      ${eventConfig.roleOptions
+                        .map(
+                          (role) => `
+                            <button
+                              type="button"
+                              class="role-chip ${this.state.roleIntent === role ? 'role-chip--active' : ''}"
+                              data-action="select-role"
+                              data-role="${escapeHtml(role)}"
+                            >
+                              ${escapeHtml(role)}
+                            </button>
+                          `
+                        )
+                        .join('')}
+                    </div>
                   </div>
 
                   <div class="actions actions--stack">

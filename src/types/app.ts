@@ -82,15 +82,10 @@ export interface CharacterDefinition {
 export interface ObstacleDefinition {
   key: string;
   label: string;
-  assetKey: string;
   accent: number;
   weight: number;
   width: number;
   height: number;
-  bodyWidth: number;
-  bodyHeight: number;
-  bodyOffsetX: number;
-  bodyOffsetY: number;
   scoreValue: number;
   speedModifier: number;
 }

@@ -15,7 +15,7 @@ export interface AppDebugState {
   livesRemaining: number;
   pendingRunScore: number | null;
   playScene: PlaySceneDebugState | null;
-  screen: 'menu' | 'character-select' | 'play' | 'result';
+  screen: 'menu' | 'character-select' | 'name-entry' | 'play' | 'result';
   selectedCharacter: string;
   submittedScore: number | null;
 }
@@ -34,9 +34,20 @@ export async function gotoCharacterSelect(page: Page): Promise<void> {
   await waitForScreen(page, 'character-select');
 }
 
-export async function startRun(page: Page, characterKey = 'runner-deloitte'): Promise<void> {
+export async function startRun(
+  page: Page,
+  characterKey = 'runner-deloitte',
+  displayName = 'Consultant',
+): Promise<void> {
   await gotoCharacterSelect(page);
   await page.locator(`[data-key="${characterKey}"]`).click();
+  await waitForScreen(page, 'name-entry');
+
+  if (displayName) {
+    await page.locator('form[data-action="name-entry"] input[name="name"]').fill(displayName);
+  }
+
+  await page.locator('form[data-action="name-entry"] button[type="submit"]').click();
   await waitForScreen(page, 'play');
   await expect(page.locator('#phaser-root canvas')).toBeVisible();
 }
