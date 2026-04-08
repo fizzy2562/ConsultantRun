@@ -631,7 +631,11 @@ export class AppController {
                 `
                 : `
                   <div class="actions">
-                    <button class="button button--primary" data-action="auth-google" type="button">Unlock with Google</button>
+                    ${
+                      eventConfig.enableGoogleAuth
+                        ? '<button class="button button--primary" data-action="auth-google" type="button">Unlock with Google</button>'
+                        : ''
+                    }
                     <button class="button button--ghost" data-action="replay" type="button">Play again</button>
                   </div>
                   <form class="auth-form" data-action="magic-link">
@@ -642,7 +646,13 @@ export class AppController {
                     <button class="button button--wide button--ghost" type="submit">Email me the unlock link</button>
                   </form>
                   <p class="helper-copy">
-                    ${authService.isDemoMode() ? 'Demo auth mode is active locally.' : 'Google is the fastest path on the event floor.'}
+                    ${
+                      authService.isDemoMode()
+                        ? 'Demo auth mode is active locally.'
+                        : eventConfig.enableGoogleAuth
+                          ? 'Google is enabled and magic link is available as the fallback.'
+                          : 'Magic link is enabled. Google can be turned on once OAuth credentials are configured in Supabase.'
+                    }
                   </p>
                 `
             }
