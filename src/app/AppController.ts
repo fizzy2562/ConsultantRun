@@ -7,6 +7,7 @@ import { PlayScene } from '../game/scenes/PlayScene';
 import { audioSystem } from '../game/systems/AudioSystem';
 import { authService } from '../services/auth';
 import { trackEvent } from '../services/analytics';
+import { sanitizeDisplayName } from '../services/displayName';
 import { createOrRestoreEventSession } from '../services/eventSession';
 import { leaderboardService } from '../services/leaderboard';
 import {
@@ -115,7 +116,7 @@ function formatLeaderboard(entries: LeaderboardEntry[]): string {
             <li>
               <span class="leaderboard-rank">#${entry.rank}</span>
               <div class="leaderboard__meta">
-                <span class="leaderboard__name">${escapeHtml(entry.displayName)}</span>
+                <span class="leaderboard__name">${escapeHtml(sanitizeDisplayName(entry.displayName))}</span>
                 ${renderCompanyBadge(entry.characterKey)}
                 <span class="leaderboard__subline">${escapeHtml(entry.stageReached)} · Top ${entry.percentile}% today</span>
               </div>
@@ -148,6 +149,8 @@ export class AppController {
   private overlayRoot: HTMLElement;
 
   private game: Phaser.Game;
+
+  private isUnlockingPendingRun = false;
 
   private state: ViewState = {
     screen: 'menu',
@@ -198,8 +201,8 @@ export class AppController {
 
     await this.refreshLeaderboards();
 
-    if (this.state.user && this.state.pendingRun) {
-      await this.unlockPendingRun();
+    if (this.state.pendingRun) {
+      await this.resumePendingRun();
       return;
     }
 
@@ -299,7 +302,7 @@ export class AppController {
       if (form.dataset.action === 'name-entry') {
         const raw = new FormData(form).get('name');
         const name = typeof raw === 'string' ? raw.trim() : '';
-        this.state.displayName = name || 'Consultant';
+        this.state.displayName = sanitizeDisplayName(name);
         saveStoredDisplayName(this.state.displayName);
         void this.startPlay();
         return;
@@ -333,6 +336,7 @@ export class AppController {
     this.state.authMessage = null;
     this.state.submittedScore = null;
     this.state.pendingRun = null;
+    this.state.bestPendingRun = null;
     clearPendingRun();
     this.render();
     setActiveCharacter(this.state.selectedCharacter);
@@ -341,6 +345,28 @@ export class AppController {
       characterKey: this.state.selectedCharacter,
       displayName: this.state.displayName,
     });
+  }
+
+  private async resumePendingRun(): Promise<void> {
+    const pendingRun = this.state.pendingRun;
+
+    if (!pendingRun) {
+      return;
+    }
+
+    this.state.screen = 'result';
+    this.state.isLeaderboardOpen = false;
+    this.state.loading = false;
+    this.state.submittedScore = null;
+    this.state.authMessage = null;
+    this.game.scene.start('ResultScene', { pendingRun });
+
+    if (this.state.user) {
+      await this.unlockPendingRun();
+      return;
+    }
+
+    this.render();
   }
 
   private async handleRunEnded(pendingRun: PendingRun): Promise<void> {
@@ -426,12 +452,14 @@ export class AppController {
   }
 
   private async unlockPendingRun(): Promise<void> {
-    if (!this.state.pendingRun || !this.state.session || !this.state.user || this.state.loading) {
+    if (!this.state.pendingRun || !this.state.session || !this.state.user || this.isUnlockingPendingRun) {
       return;
     }
 
+    this.isUnlockingPendingRun = true;
     this.state.loading = true;
     this.state.authMessage = 'Unlocking your result…';
+    this.state.screen = 'result';
     this.render();
 
     try {
@@ -459,6 +487,7 @@ export class AppController {
     } catch (error) {
       this.state.authMessage = error instanceof Error ? error.message : 'Score unlock failed.';
     } finally {
+      this.isUnlockingPendingRun = false;
       this.state.loading = false;
       this.render();
     }
@@ -481,11 +510,15 @@ export class AppController {
   }
 
   private openCharacterSelect(): void {
+    this.state.livesRemaining = TOTAL_LIVES;
+    this.state.bestPendingRun = null;
+    this.state.pendingRun = null;
     this.state.screen = 'character-select';
     this.state.isLeaderboardOpen = false;
     this.state.authMessage = null;
     this.state.loading = false;
     this.state.submittedScore = null;
+    clearPendingRun();
     this.game.scene.start('MenuScene');
     this.render();
   }
@@ -532,6 +565,16 @@ export class AppController {
 
     activeScene.forceFinishForTest();
     await this.waitForDebugSteadyState(currentInstanceId);
+  }
+
+  forceSpawnObstacleForTest(key: string): void {
+    const activeScene = this.getActivePlayScene();
+
+    if (!activeScene) {
+      throw new Error('PlayScene is not active.');
+    }
+
+    activeScene.forceSpawnObstacleForTest(key);
   }
 
   destroyForTest(): void {

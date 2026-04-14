@@ -6,6 +6,7 @@ declare global {
     __consultantRunDebug?: {
       destroyApp: () => void;
       forceFinishRun: () => Promise<void>;
+      forceSpawnObstacle: (key: string) => void;
       getState: () => unknown;
     };
   }
@@ -47,6 +48,7 @@ if (import.meta.env.DEV) {
   window.__consultantRunDebug = {
     destroyApp: () => controller.destroyForTest(),
     forceFinishRun: () => controller.forceFinishRunForTest(),
+    forceSpawnObstacle: (key: string) => controller.forceSpawnObstacleForTest(key),
     getState: () => controller.getDebugState(),
   };
 }

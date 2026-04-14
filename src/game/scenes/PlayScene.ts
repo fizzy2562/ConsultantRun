@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { difficultyConfig } from '../../config/difficulty';
-import { gameConfig } from '../../config/game';
+import { gameConfig, obstacleDefinitions } from '../../config/game';
 import type { PendingRun, StageReached } from '../../types/app';
 import { audioSystem } from '../systems/AudioSystem';
 import { DifficultySystem } from '../systems/DifficultySystem';
@@ -218,14 +218,20 @@ export class PlayScene extends Phaser.Scene {
     instanceId: number;
     isGameOver: boolean;
     jumpCount: number;
+    obstacle: ReturnType<Obstacle['getDebugSnapshot']> | null;
     playerY: number | null;
     scoreText: string | null;
   } {
+    const activeObstacle = this.obstacles
+      .getChildren()
+      .find((entry) => entry.active) as Obstacle | undefined;
+
     return {
       characterKey: this.characterKey,
       instanceId: this.instanceId,
       isGameOver: this.isGameOver,
       jumpCount: this.jumpCount,
+      obstacle: activeObstacle?.getDebugSnapshot() ?? null,
       playerY: this.player?.y ?? null,
       scoreText: this.scoreText?.text ?? null,
     };
@@ -233,6 +239,23 @@ export class PlayScene extends Phaser.Scene {
 
   forceFinishForTest(): void {
     this.finishRun();
+  }
+
+  forceSpawnObstacleForTest(key: string): void {
+    const definition = obstacleDefinitions.find((entry) => entry.key === key);
+
+    if (!definition) {
+      throw new Error(`Unknown obstacle key: ${key}`);
+    }
+
+    const obstacle = new Obstacle(
+      this,
+      gameConfig.logicalWidth * 0.7,
+      gameConfig.groundY + 6,
+      definition,
+    );
+    (obstacle.body as Phaser.Physics.Arcade.Body | null)?.setVelocityX(0);
+    this.obstacles.add(obstacle);
   }
 
   private finishRun(): void {
