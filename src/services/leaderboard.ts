@@ -18,6 +18,7 @@ import {
   saveLocalScores,
   setSubmissionCooldownStamp,
 } from './storage';
+import { trackEvent } from './analytics';
 import { sanitizeDisplayName } from './displayName';
 import { supabase } from './supabase';
 
@@ -106,7 +107,7 @@ function validatePendingRun(run: PendingRun): void {
   }
 }
 
-function guardSubmissionCooldown(): void {
+function guardSubmissionCooldown(): number {
   const now = Date.now();
   const previous = getSubmissionCooldownStamp();
 
@@ -114,7 +115,7 @@ function guardSubmissionCooldown(): void {
     throw new Error('Submission cooldown active. Wait a moment and retry.');
   }
 
-  setSubmissionCooldownStamp(now);
+  return now;
 }
 
 async function submitWithSupabase(
@@ -174,7 +175,8 @@ async function submitWithSupabase(
     .single();
 
   if (directInsert.error || !directInsert.data) {
-    return null;
+    const message = directInsert.error?.message || rpcResult.error?.message || 'Unknown leaderboard error.';
+    throw new Error(`Live leaderboard submit failed. ${message}`);
   }
 
   return normalizeScore(directInsert.data as Record<string, unknown>);
@@ -192,6 +194,9 @@ async function fetchAllScores(eventName: string): Promise<SubmittedScore[]> {
     if (!error && data) {
       return (data as Record<string, unknown>[]).map(normalizeScore);
     }
+
+    console.warn('[leaderboard] failed to fetch remote scores; returning an empty remote board', error?.message);
+    return [];
   }
 
   return sortEntries(getLocalScores().filter((entry) => entry.eventName === eventName));
@@ -205,11 +210,12 @@ export const leaderboardService = {
     authMethod: AuthMethod
   ): Promise<LeaderboardEntry> {
     validatePendingRun(run);
-    guardSubmissionCooldown();
+    const cooldownStamp = guardSubmissionCooldown();
 
     const remoteScore = await submitWithSupabase(run, session, user, authMethod);
 
     if (remoteScore) {
+      setSubmissionCooldownStamp(cooldownStamp);
       const fullEntries = await fetchAllScores(session.eventName);
       const entries = fullEntries.map((entry) => toLeaderboardEntry(entry, fullEntries));
       return {
@@ -238,6 +244,11 @@ export const leaderboardService = {
 
     const nextScores = [...localScores, submitted];
     saveLocalScores(nextScores);
+    setSubmissionCooldownStamp(cooldownStamp);
+    trackEvent('leaderboard_local_submit', {
+      event_name: session.eventName,
+      score: submitted.score,
+    });
 
     return toLeaderboardEntry(submitted, nextScores);
   },
@@ -260,6 +271,9 @@ export const leaderboardService = {
         const entries = (data as Record<string, unknown>[]).map(normalizeScore);
         return entries.map((entry) => toLeaderboardEntry(entry, entries));
       }
+
+      console.warn('[leaderboard] failed to fetch daily leaderboard', error?.message);
+      return [];
     }
 
     const entries = sortEntries(
@@ -300,6 +314,9 @@ export const leaderboardService = {
           percentile: 1,
         };
       }
+
+      console.warn('[leaderboard] failed to fetch player best', error?.message);
+      return null;
     }
 
     const entries = sortEntries(

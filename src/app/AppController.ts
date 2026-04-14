@@ -426,7 +426,9 @@ export class AppController {
       trackEvent('auth_method_selected', { method: 'google' });
       this.render();
     } catch (error) {
-      this.state.authMessage = error instanceof Error ? error.message : 'Google auth failed.';
+      const message = error instanceof Error ? error.message : 'Google auth failed.';
+      this.state.authMessage = message;
+      trackEvent('auth_failed', { method: 'google', error_message: message });
       this.render();
     }
   }
@@ -446,7 +448,9 @@ export class AppController {
       trackEvent('auth_method_selected', { method: 'magic_link' });
       this.render();
     } catch (error) {
-      this.state.authMessage = error instanceof Error ? error.message : 'Magic link failed.';
+      const message = error instanceof Error ? error.message : 'Magic link failed.';
+      this.state.authMessage = message;
+      trackEvent('auth_failed', { method: 'magic_link', error_message: message });
       this.render();
     }
   }
@@ -485,7 +489,14 @@ export class AppController {
       await this.refreshLeaderboards();
       this.state.pendingRun = null;
     } catch (error) {
-      this.state.authMessage = error instanceof Error ? error.message : 'Score unlock failed.';
+      const message = error instanceof Error ? error.message : 'Score unlock failed.';
+      this.state.authMessage = message;
+      trackEvent('score_submit_failed', {
+        error_message: message,
+        has_user: Boolean(this.state.user),
+        pending_score: this.state.pendingRun?.score ?? null,
+      });
+      console.warn('[score-submit] failed to unlock pending run', error);
     } finally {
       this.isUnlockingPendingRun = false;
       this.state.loading = false;
