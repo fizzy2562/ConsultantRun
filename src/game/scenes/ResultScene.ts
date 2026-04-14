@@ -25,6 +25,9 @@ export class ResultScene extends Phaser.Scene {
     this.player = new Player(this, gameConfig.logicalWidth * 0.32, gameConfig.groundY - 4, getActiveCharacter());
     this.player.fail();
 
+    this.add.ellipse(gameConfig.logicalWidth * 0.72, 238, 226, 226, 0x4da68b, 0.12).setDepth(0.3);
+    this.add.star(gameConfig.logicalWidth * 0.72, 194, 5, 18, 34, 0xffd86a, 0.9).setDepth(0.5);
+
     this.add.rectangle(gameConfig.logicalWidth * 0.7, 240, 176, 176, 0x0c1710, 0.84).setStrokeStyle(2, 0x4da68b, 0.4);
     this.add.text(gameConfig.logicalWidth * 0.7, 194, data?.pendingRun?.stageReached ?? 'Discovery', {
       fontFamily: 'Inter, sans-serif',
@@ -48,6 +51,8 @@ export class ResultScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     this.layers.grid.tilePositionX += delta * 0.005;
     this.layers.bars.tilePositionX += delta * 0.011;
+    this.layers.beamLeft.rotation += delta * 0.00005;
+    this.layers.beamRight.rotation -= delta * 0.00005;
 
     if (this.scoreText) {
       this.scoreText.rotation = Math.sin(this.time.now / 400) * 0.01;

@@ -10,9 +10,14 @@ export function createGame(parentId: string): Phaser.Game {
   const searchParams =
     typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search);
   const isE2EMode = searchParams.get('e2e') === '1';
+  const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent;
+  const isWebKitTouch =
+    /AppleWebKit/i.test(ua) &&
+    /Mobile|iPhone|iPad|iPod/i.test(ua) &&
+    !/CriOS|FxiOS|EdgiOS/i.test(ua);
 
   return new Phaser.Game({
-    type: isE2EMode ? Phaser.CANVAS : Phaser.AUTO,
+    type: isE2EMode || isWebKitTouch ? Phaser.CANVAS : Phaser.AUTO,
     parent: parentId,
     width: gameConfig.logicalWidth,
     height: gameConfig.logicalHeight,

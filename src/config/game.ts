@@ -12,10 +12,10 @@ export const gameConfig = {
 
 export const stageThresholds: Array<{ stage: StageReached; minScore: number }> = [
   { stage: 'Discovery', minScore: 0 },
-  { stage: 'Design', minScore: 151 },
-  { stage: 'Build', minScore: 351 },
-  { stage: 'UAT', minScore: 651 },
-  { stage: 'Go Live', minScore: 901 },
+  { stage: 'Design', minScore: 180 },
+  { stage: 'Build', minScore: 420 },
+  { stage: 'UAT', minScore: 760 },
+  { stage: 'Go Live', minScore: 1080 },
 ];
 
 export const characters: CharacterDefinition[] = [

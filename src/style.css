@@ -2,7 +2,7 @@
 
 :root {
   color-scheme: dark;
-  font-family: Inter, "Segoe UI", sans-serif;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
   background:
     radial-gradient(circle at top left, rgba(77, 166, 139, 0.24), transparent 28%),
     radial-gradient(circle at top right, rgba(61, 127, 171, 0.24), transparent 30%),
@@ -291,6 +291,12 @@ a {
   max-width: 12ch;
 }
 
+.result-kicker {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #d7fff0;
+}
+
 /* ── Top bar ───────────────────────────────────────────────────────────────── */
 
 .top-bar {
@@ -420,6 +426,35 @@ a {
   width: 100%;
 }
 
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.hero-stat {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.hero-stat strong {
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.hero-stat__label {
+  color: rgba(245, 247, 245, 0.52);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
 /* ── Auth form ─────────────────────────────────────────────────────────────── */
 
 .auth-form {
@@ -536,6 +571,7 @@ a {
   display: flex;
   align-items: center;
   gap: 14px;
+  flex-wrap: wrap;
 }
 
 .play-hud__sponsor {
@@ -569,7 +605,8 @@ a {
 
 .play-hint {
   align-self: end;
-  max-width: 380px;
+  max-width: 420px;
+  background: rgba(5, 10, 8, 0.62);
 }
 
 .play-hint__content strong {
@@ -919,6 +956,10 @@ pre {
   .overlay-headline h2 {
     font-size: clamp(2rem, 10vw, 3rem);
     max-width: none;
+  }
+
+  .hero-stats {
+    grid-template-columns: 1fr;
   }
 
   .stat-grid {

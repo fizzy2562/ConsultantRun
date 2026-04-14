@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 
 export interface PlaySceneDebugState {
   characterKey: string;
+  currentStage: string;
   instanceId: number;
   isGameOver: boolean;
   jumpCount: number;
@@ -24,6 +25,7 @@ export interface AppDebugState {
   livesRemaining: number;
   pendingRunScore: number | null;
   playScene: PlaySceneDebugState | null;
+  rendererType: string;
   screen: 'menu' | 'character-select' | 'name-entry' | 'play' | 'result';
   selectedCharacter: string;
   submittedScore: number | null;
@@ -62,6 +64,9 @@ export async function startRun(
 }
 
 export async function getDebugState(page: Page): Promise<AppDebugState> {
+  await page.waitForFunction(() => Boolean(window.__consultantRunDebug?.getState), null, {
+    timeout: 10_000,
+  });
   const state = await page.evaluate(() => window.__consultantRunDebug?.getState() ?? null);
 
   if (!state) {
@@ -83,4 +88,31 @@ export async function forceSpawnObstacle(page: Page, key: string): Promise<void>
   await page.evaluate((obstacleKey) => {
     window.__consultantRunDebug?.forceSpawnObstacle(obstacleKey);
   }, key);
+}
+
+export async function forceFinishLife(page: Page): Promise<void> {
+  const before = await getDebugState(page);
+  const previousInstanceId = before.playScene?.instanceId ?? 0;
+
+  await page.evaluate(() => {
+    void window.__consultantRunDebug?.forceFinishRun();
+  });
+
+  await page.waitForFunction(
+    (instanceId) => {
+      const state = window.__consultantRunDebug?.getState() as
+        | {
+            playScene?: { instanceId?: number };
+            screen?: 'menu' | 'character-select' | 'name-entry' | 'play' | 'result';
+          }
+        | undefined;
+
+      return (
+        state?.screen === 'result' ||
+        (state?.screen === 'play' && (state.playScene?.instanceId ?? 0) > Number(instanceId))
+      );
+    },
+    previousInstanceId,
+    { timeout: 10_000 }
+  );
 }

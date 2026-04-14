@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
   cleanupApp,
+  forceFinishLife,
   forceSpawnObstacle,
   getDebugState,
   startRun,
@@ -17,7 +18,7 @@ async function finishRunWithScore(page: Page): Promise<void> {
     return state?.playScene?.scoreText !== '000';
   });
 
-  await page.evaluate(() => window.__consultantRunDebug?.forceFinishRun());
+  await forceFinishLife(page);
 }
 
 test('email-style player names are never shown in the result or leaderboard', async ({ page }) => {

@@ -19,6 +19,9 @@ export class MenuScene extends Phaser.Scene {
     this.player.setScale(1.15);
     this.player.setIdle();
 
+    this.add.ellipse(gameConfig.logicalWidth * 0.76, 220, 178, 178, 0x4da68b, 0.12).setDepth(0.3);
+    this.add.ellipse(gameConfig.logicalWidth * 0.75, 220, 104, 104, 0xffffff, 0.06).setDepth(0.35);
+
     const runway = this.add.tileSprite(
       gameConfig.logicalWidth / 2,
       gameConfig.groundY + 8,
@@ -41,5 +44,7 @@ export class MenuScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     this.layers.grid.tilePositionX += delta * 0.006;
     this.layers.bars.tilePositionX += delta * 0.012;
+    this.layers.beamLeft.rotation += delta * 0.00004;
+    this.layers.beamRight.rotation -= delta * 0.00004;
   }
 }
