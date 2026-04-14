@@ -18,6 +18,7 @@ import {
   saveLocalScores,
   setSubmissionCooldownStamp,
 } from './storage';
+import { sanitizeDisplayName } from './displayName';
 import { supabase } from './supabase';
 
 function normalizeScore(record: Record<string, unknown>): SubmittedScore {
@@ -26,7 +27,7 @@ function normalizeScore(record: Record<string, unknown>): SubmittedScore {
     createdAt: String(record.created_at ?? record.createdAt ?? new Date().toISOString()),
     anonymousSessionId: String(record.anonymous_session_id ?? record.anonymousSessionId ?? ''),
     userId: (record.user_id as string | null | undefined) ?? (record.userId as string | null | undefined) ?? null,
-    displayName: String(record.display_name ?? record.displayName ?? 'Consultant'),
+    displayName: sanitizeDisplayName(String(record.display_name ?? record.displayName ?? 'Consultant')),
     score: Number(record.score ?? 0),
     stageReached: String(record.stage_reached ?? record.stageReached ?? 'Discovery') as SubmittedScore['stageReached'],
     distance: Number(record.distance ?? 0),
@@ -129,7 +130,7 @@ async function submitWithSupabase(
   const payload = {
     p_anonymous_session_id: session.anonymousSessionId,
     p_user_id: user.id,
-    p_display_name: run.displayName || user.displayName,
+    p_display_name: sanitizeDisplayName(run.displayName || user.displayName),
     p_score: run.score,
     p_stage_reached: run.stageReached,
     p_distance: run.distance,
@@ -155,7 +156,7 @@ async function submitWithSupabase(
     .insert({
       anonymous_session_id: session.anonymousSessionId,
       user_id: user.id,
-      display_name: run.displayName || user.displayName,
+      display_name: sanitizeDisplayName(run.displayName || user.displayName),
       score: run.score,
       stage_reached: run.stageReached,
       distance: run.distance,
@@ -225,7 +226,7 @@ export const leaderboardService = {
       createdAt,
       anonymousSessionId: session.anonymousSessionId,
       userId: user.id,
-      displayName: run.displayName || user.displayName,
+      displayName: sanitizeDisplayName(run.displayName || user.displayName),
       score: run.score,
       stageReached: run.stageReached,
       distance: run.distance,

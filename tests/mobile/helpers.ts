@@ -5,6 +5,15 @@ export interface PlaySceneDebugState {
   instanceId: number;
   isGameOver: boolean;
   jumpCount: number;
+  obstacle: {
+    cropHeight: number;
+    cropWidth: number;
+    displayHeight: number;
+    displayWidth: number;
+    key: string;
+    targetHeight: number;
+    targetWidth: number;
+  } | null;
   playerY: number | null;
   scoreText: string | null;
 }
@@ -68,4 +77,10 @@ export async function cleanupApp(page: Page): Promise<void> {
   }).catch(() => undefined);
 
   await page.goto('about:blank').catch(() => undefined);
+}
+
+export async function forceSpawnObstacle(page: Page, key: string): Promise<void> {
+  await page.evaluate((obstacleKey) => {
+    window.__consultantRunDebug?.forceSpawnObstacle(obstacleKey);
+  }, key);
 }

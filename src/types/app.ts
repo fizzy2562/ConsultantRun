@@ -84,6 +84,10 @@ export interface ObstacleDefinition {
   label: string;
   assetKey: string;
   accent: number;
+  cropX?: number;
+  cropY?: number;
+  cropWidth?: number;
+  cropHeight?: number;
   weight: number;
   width: number;
   height: number;

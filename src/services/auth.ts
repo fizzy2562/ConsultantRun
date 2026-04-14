@@ -1,4 +1,5 @@
 import type { AuthActionResult, AuthMethod, UserIdentity } from '../types/app';
+import { sanitizeDisplayName } from './displayName';
 import { clearStoredUser, createId, getStoredUser, saveStoredUser } from './storage';
 import { isSupabaseConfigured, supabase } from './supabase';
 
@@ -15,10 +16,10 @@ function mapSupabaseUser(user: {
   user_metadata?: { full_name?: string; name?: string };
 }): UserIdentity {
   const displayName =
-    user.user_metadata?.full_name ||
-    user.user_metadata?.name ||
-    user.email ||
-    'Consultant';
+    sanitizeDisplayName(
+      user.user_metadata?.full_name || user.user_metadata?.name || user.email,
+      'Consultant'
+    );
 
   return {
     id: user.id,
@@ -149,7 +150,7 @@ class AuthService {
     const user: UserIdentity = {
       id: createId(),
       email,
-      displayName: email.split('@')[0] || 'Consultant',
+      displayName: sanitizeDisplayName(email.split('@')[0], 'Consultant'),
       provider: 'demo',
     };
 
