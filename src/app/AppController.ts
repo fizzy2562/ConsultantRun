@@ -28,6 +28,14 @@ import type {
 
 const TOTAL_LIVES = 3;
 
+const stageDescriptions: Record<string, string> = {
+  Discovery: 'You got the brief moving, but the room still wants more clarity.',
+  Design: 'Momentum is building. Stakeholders can see the shape of the solution.',
+  Build: 'The team is shipping. Keep your rhythm and protect the runway.',
+  UAT: 'You are in the danger zone now. One wobble and the whole launch shakes.',
+  'Go Live': 'That is the clean launch run. You made it through the blockers.',
+};
+
 interface AppControllerOptions {
   overlayRoot: HTMLElement | null;
   phaserRootId: string;
@@ -39,6 +47,7 @@ interface ViewState {
   displayName: string;
   livesRemaining: number;
   bestPendingRun: PendingRun | null;
+  resultRun: PendingRun | null;
   isLeaderboardOpen: boolean;
   session: EventSessionContext | null;
   pendingRun: PendingRun | null;
@@ -129,6 +138,79 @@ function formatLeaderboard(entries: LeaderboardEntry[]): string {
   `;
 }
 
+function buildSampleLeaderboard(): LeaderboardEntry[] {
+  return [
+    {
+      id: 'sample-1',
+      createdAt: new Date().toISOString(),
+      anonymousSessionId: 'sample',
+      userId: null,
+      displayName: 'Fast Lane',
+      score: 1420,
+      stageReached: 'Go Live',
+      distance: 0,
+      eventName: eventConfig.eventName,
+      prizeStatus: 'preview',
+      authMethod: null,
+      characterKey: 'runner-deloitte',
+      rank: 1,
+      percentile: 5,
+    },
+    {
+      id: 'sample-2',
+      createdAt: new Date().toISOString(),
+      anonymousSessionId: 'sample',
+      userId: null,
+      displayName: 'Pipeline Pro',
+      score: 1180,
+      stageReached: 'UAT',
+      distance: 0,
+      eventName: eventConfig.eventName,
+      prizeStatus: 'preview',
+      authMethod: null,
+      characterKey: 'runner-spire',
+      rank: 2,
+      percentile: 12,
+    },
+    {
+      id: 'sample-3',
+      createdAt: new Date().toISOString(),
+      anonymousSessionId: 'sample',
+      userId: null,
+      displayName: 'Solution Sprint',
+      score: 940,
+      stageReached: 'Build',
+      distance: 0,
+      eventName: eventConfig.eventName,
+      prizeStatus: 'preview',
+      authMethod: null,
+      characterKey: 'runner-delaware',
+      rank: 3,
+      percentile: 20,
+    },
+  ];
+}
+
+function getScoreMood(score: number): { badge: string; title: string } {
+  if (score >= 1080) {
+    return { badge: 'Launch legend', title: 'You shipped a clean go-live run.' };
+  }
+
+  if (score >= 760) {
+    return { badge: 'Pressure player', title: 'You were one clean sprint away from launch.' };
+  }
+
+  if (score >= 420) {
+    return { badge: 'Builder energy', title: 'You got through the messy middle with pace.' };
+  }
+
+  if (score >= 180) {
+    return { badge: 'Discovery spark', title: 'You found your rhythm. Next run goes deeper.' };
+  }
+
+  return { badge: 'Warm-up lap', title: 'The first run is for reading the room. Go again.' };
+}
+
 function buildCtaUrl(baseUrl: string, params: Record<string, string | number | null | undefined>): string {
   try {
     const url = new URL(baseUrl);
@@ -158,6 +240,7 @@ export class AppController {
     displayName: '',
     livesRemaining: TOTAL_LIVES,
     bestPendingRun: null,
+    resultRun: null,
     isLeaderboardOpen: false,
     session: null,
     pendingRun: null,
@@ -337,6 +420,7 @@ export class AppController {
     this.state.submittedScore = null;
     this.state.pendingRun = null;
     this.state.bestPendingRun = null;
+    this.state.resultRun = null;
     clearPendingRun();
     this.render();
     setActiveCharacter(this.state.selectedCharacter);
@@ -359,6 +443,7 @@ export class AppController {
     this.state.loading = false;
     this.state.submittedScore = null;
     this.state.authMessage = null;
+    this.state.resultRun = pendingRun;
     this.game.scene.start('ResultScene', { pendingRun });
 
     if (this.state.user) {
@@ -396,6 +481,7 @@ export class AppController {
     const bestRun = this.state.bestPendingRun ?? pendingRun;
     savePendingRun(bestRun);
     this.state.pendingRun = bestRun;
+    this.state.resultRun = bestRun;
     this.state.submittedScore = null;
     this.state.screen = 'result';
     this.state.authMessage = null;
@@ -529,6 +615,7 @@ export class AppController {
     this.state.authMessage = null;
     this.state.loading = false;
     this.state.submittedScore = null;
+    this.state.resultRun = null;
     clearPendingRun();
     this.game.scene.start('MenuScene');
     this.render();
@@ -547,6 +634,7 @@ export class AppController {
     livesRemaining: number;
     pendingRunScore: number | null;
     playScene: ReturnType<PlayScene['getDebugSnapshot']> | null;
+    rendererType: string;
     screen: ViewState['screen'];
     selectedCharacter: string;
     submittedScore: number | null;
@@ -559,6 +647,7 @@ export class AppController {
       livesRemaining: this.state.livesRemaining,
       pendingRunScore: this.state.pendingRun?.score ?? null,
       playScene,
+      rendererType: this.game.config.renderType === Phaser.CANVAS ? 'canvas' : 'auto',
       screen: this.state.screen,
       selectedCharacter: this.state.selectedCharacter,
       submittedScore: this.state.submittedScore?.score ?? null,
@@ -781,6 +870,7 @@ export class AppController {
 
   private renderMenuOverlay(): string {
     const hasScores = this.state.dailyLeaderboard.length > 0;
+    const leaderboardEntries = hasScores ? this.state.dailyLeaderboard : buildSampleLeaderboard();
 
     return `
       <section class="overlay-layout">
@@ -796,6 +886,21 @@ export class AppController {
             <div class="overlay-headline">
               <h2>${escapeHtml(eventConfig.landing.title)}</h2>
               <p>${escapeHtml(eventConfig.landing.concept)}</p>
+            </div>
+
+            <div class="hero-stats">
+              <div class="hero-stat">
+                <span class="hero-stat__label">Goal</span>
+                <strong>Reach Go Live</strong>
+              </div>
+              <div class="hero-stat">
+                <span class="hero-stat__label">Runs</span>
+                <strong>${TOTAL_LIVES} sponsor-backed attempts</strong>
+              </div>
+              <div class="hero-stat">
+                <span class="hero-stat__label">Skill</span>
+                <strong>Tap timing beats panic</strong>
+              </div>
             </div>
 
             <div class="actions actions--stack">
@@ -814,17 +919,19 @@ export class AppController {
             <div class="leaderboard__header">
               <div>
                 <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
-                <h3>${hasScores ? 'Can you top this?' : 'No scores yet — be first.'}</h3>
+                <h3>${hasScores ? 'Can you top this?' : 'Target pace for today'}</h3>
               </div>
             </div>
-            ${hasScores ? formatLeaderboard(this.state.dailyLeaderboard.slice(0, 5)) : ''}
+            ${!hasScores ? '<p class="helper-copy">Live board unlocks with the first submitted runs. Until then, beat the pace-setters.</p>' : ''}
+            ${formatLeaderboard(leaderboardEntries.slice(0, 5))}
           </article>
         </div>
 
         <aside class="overlay-card leaderboard leaderboard--sidebar">
           <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
-          <h3>${hasScores ? 'Can you top this?' : 'No scores yet — be first.'}</h3>
-          ${hasScores ? formatLeaderboard(this.state.dailyLeaderboard) : ''}
+          <h3>${hasScores ? 'Can you top this?' : 'Target pace for today'}</h3>
+          ${!hasScores ? '<p class="helper-copy">The board is quiet right now, so the pace-setters are on the runway instead.</p>' : ''}
+          ${formatLeaderboard(leaderboardEntries)}
         </aside>
       </section>
     `;
@@ -833,12 +940,14 @@ export class AppController {
   private renderPlayOverlay(): string {
     const character = characterByKey.get(this.state.selectedCharacter);
     const accentHex = character ? toHex(character.palette.accent) : '#4da68b';
+    const currentRun = TOTAL_LIVES - this.state.livesRemaining + 1;
 
     return `
       <section class="overlay-layout overlay-layout--play">
         <div class="overlay-column">
           <article class="overlay-card overlay-card--compact play-hud">
             <div class="play-hud__left">
+              <span class="status-chip">Run ${currentRun} of ${TOTAL_LIVES}</span>
               <div class="lives-display">
                 ${renderLivesDots(this.state.livesRemaining, TOTAL_LIVES)}
               </div>
@@ -847,6 +956,12 @@ export class AppController {
             <button class="button button--ghost button--sm" data-action="toggle-mute" type="button">
               ${audioSystem.isMuted() ? 'Sound off' : 'Sound on'}
             </button>
+          </article>
+          <article class="overlay-card overlay-card--compact play-hint">
+            <div class="play-hint__content">
+              <strong>Find the rhythm</strong>
+              <p>Early jumps are forgiving now. Let the blocker come to you, then tap once and stay composed.</p>
+            </div>
           </article>
         </div>
       </section>
@@ -861,6 +976,10 @@ export class AppController {
     const rank = this.state.submittedScore?.rank ?? null;
     const percentile = this.state.submittedScore?.percentile ?? null;
     const character = characterByKey.get(this.state.selectedCharacter);
+    const scoreMood = getScoreMood(displayScore);
+    const obstacleClears = this.state.resultRun?.obstacleClears ?? 0;
+    const dailyEntries = this.state.dailyLeaderboard.length ? this.state.dailyLeaderboard : buildSampleLeaderboard();
+    const allTimeEntries = this.state.allTimeLeaderboard.length ? this.state.allTimeLeaderboard : buildSampleLeaderboard();
     const productUrl = buildCtaUrl(eventConfig.consultantCloudCtaUrl, {
       source: 'consultantrun',
       event_name: this.state.session?.eventName,
@@ -893,6 +1012,7 @@ export class AppController {
 
             <div class="overlay-headline">
               <h2>${escapeHtml(stage === 'Go Live' ? 'Project landed!' : `Stalled in ${stage}.`)}</h2>
+              <p class="result-kicker">${escapeHtml(scoreMood.title)}</p>
               <p>
                 ${
                   this.state.submittedScore
@@ -900,6 +1020,11 @@ export class AppController {
                     : 'Sign in to lock in your score and claim a prize at the stand.'
                 }
               </p>
+            </div>
+
+            <div class="result-grid">
+              <span class="status-chip">${escapeHtml(scoreMood.badge)}</span>
+              <p class="helper-copy">${escapeHtml(stageDescriptions[stage] ?? stageDescriptions.Discovery)}</p>
             </div>
 
             <div class="stat-grid">
@@ -918,6 +1043,10 @@ export class AppController {
               <article class="stat-card">
                 <span class="stat-card__label">Prize</span>
                 <span class="stat-card__value">${this.state.submittedScore ? 'Claim at stand' : 'Sign in first'}</span>
+              </article>
+              <article class="stat-card">
+                <span class="stat-card__label">Clean clears</span>
+                <span class="stat-card__value">${obstacleClears}</span>
               </article>
             </div>
 
@@ -996,13 +1125,14 @@ export class AppController {
           <article class="overlay-card leaderboard">
             <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.daily)}</p>
             <h3>Today's leaderboard</h3>
-            ${formatLeaderboard(this.state.dailyLeaderboard)}
+            ${!this.state.dailyLeaderboard.length ? '<p class="helper-copy">Live submissions will replace these pace-setters as players hit the board.</p>' : ''}
+            ${formatLeaderboard(dailyEntries)}
           </article>
 
           <article class="overlay-card leaderboard">
             <p class="eyebrow">${escapeHtml(eventConfig.leaderboardTitles.allTime)}</p>
             <h3>All-time board</h3>
-            ${formatLeaderboard(this.state.allTimeLeaderboard.slice(0, 5))}
+            ${formatLeaderboard(allTimeEntries.slice(0, 5))}
           </article>
 
           ${

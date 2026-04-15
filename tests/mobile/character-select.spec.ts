@@ -41,5 +41,7 @@ test('top scores list is visible on the mobile menu without opening a drawer', a
   await expect(page.locator('#overlay-root')).toHaveAttribute('data-screen', 'menu');
   await expect(page.locator('[data-action="toggle-leaderboard"]')).toHaveCount(0);
   await expect(page.locator('.leaderboard--mobile')).toBeVisible();
-  await expect(page.locator('.leaderboard--mobile h3')).toContainText(/Can you top this\?|No scores yet/);
+  await expect(page.locator('.leaderboard--mobile h3')).toContainText(/Can you top this\?|Target pace for today/);
+  await expect(page.locator('.hero-stats .hero-stat')).toHaveCount(3);
+  await expect(page.locator('.leaderboard--mobile')).toContainText(/Fast Lane|Pipeline Pro|Solution Sprint/);
 });

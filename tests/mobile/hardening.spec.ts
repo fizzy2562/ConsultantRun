@@ -53,6 +53,8 @@ test('authenticated pending results auto-unlock after reload recovery', async ({
   expect(state.submittedScore).toBe(187);
   expect(state.pendingRunScore).toBeNull();
   await expect(page.locator('#overlay-root')).toContainText('Your score is on the leaderboard');
+  await expect(page.locator('#overlay-root')).toContainText('Clean clears');
+  await expect(page.locator('#overlay-root')).toContainText('4');
   await expect(page.locator('[data-action="sign-out"]')).toBeVisible();
   await expect(page.locator('#overlay-root')).not.toContainText('player@example.com');
 });

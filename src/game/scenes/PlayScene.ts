@@ -11,6 +11,33 @@ import { ScoreSystem } from '../systems/ScoreSystem';
 import { createSceneBackdrop, type BackdropLayers } from '../systems/SceneBackdrop';
 import { SpawnSystem } from '../systems/SpawnSystem';
 
+const stagePalette: Record<StageReached, { accent: number; aura: number; beamLeft: number; beamRight: number }> = {
+  Discovery: { accent: 0x8fd6bc, aura: 0x3d7fab, beamLeft: 0x3d7fab, beamRight: 0x51ac52 },
+  Design: { accent: 0x7ed5ff, aura: 0x4a8fc8, beamLeft: 0x4a8fc8, beamRight: 0x4da68b },
+  Build: { accent: 0x97ef86, aura: 0x4da68b, beamLeft: 0x4da68b, beamRight: 0x78c96a },
+  UAT: { accent: 0xffc96f, aura: 0xd48a37, beamLeft: 0xd48a37, beamRight: 0xf6b94f },
+  'Go Live': { accent: 0xffef8a, aura: 0x61b8ff, beamLeft: 0x61b8ff, beamRight: 0x6ee98d },
+};
+
+function lerpChannel(from: number, to: number, progress: number): number {
+  return Math.round(Phaser.Math.Linear(from, to, progress));
+}
+
+function lerpColor(from: number, to: number, progress: number): number {
+  const fromR = (from >> 16) & 0xff;
+  const fromG = (from >> 8) & 0xff;
+  const fromB = from & 0xff;
+  const toR = (to >> 16) & 0xff;
+  const toG = (to >> 8) & 0xff;
+  const toB = to & 0xff;
+
+  return (
+    (lerpChannel(fromR, toR, progress) << 16) |
+    (lerpChannel(fromG, toG, progress) << 8) |
+    lerpChannel(fromB, toB, progress)
+  );
+}
+
 export class PlayScene extends Phaser.Scene {
   private static nextInstanceId = 1;
 
@@ -29,6 +56,10 @@ export class PlayScene extends Phaser.Scene {
   private stageText!: Phaser.GameObjects.Text;
 
   private progressBar!: Phaser.GameObjects.Rectangle;
+
+  private stagePulse!: Phaser.GameObjects.Rectangle;
+
+  private runBadge!: Phaser.GameObjects.Text;
 
   private obstacles!: Phaser.Physics.Arcade.Group;
 
@@ -132,6 +163,22 @@ export class PlayScene extends Phaser.Scene {
       .rectangle(24, 74, 8, 10, 0x4da68b, 1)
       .setDepth(5)
       .setOrigin(0, 0.5);
+
+    this.stagePulse = this.add
+      .rectangle(gameConfig.logicalWidth / 2, 118, gameConfig.logicalWidth - 72, 30, 0x4da68b, 0)
+      .setDepth(4.5);
+
+    this.runBadge = this.add.text(gameConfig.logicalWidth / 2, 118, 'Runway clear', {
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '14px',
+      fontStyle: '700',
+      color: '#dbfff2',
+      align: 'center',
+    });
+    this.runBadge.setOrigin(0.5);
+    this.runBadge.setDepth(5);
+
+    this.applyStagePalette(this.currentStage, false);
   }
 
   update(_time: number, delta: number): void {
@@ -147,6 +194,10 @@ export class PlayScene extends Phaser.Scene {
     this.currentSpeed = difficulty.speed;
     this.layers.grid.tilePositionX += this.currentSpeed * (delta / 1000) * 0.12;
     this.layers.bars.tilePositionX += this.currentSpeed * (delta / 1000) * 0.18;
+    this.layers.beamLeft.rotation += delta * 0.00006;
+    this.layers.beamRight.rotation -= delta * 0.00006;
+    this.layers.aura.scaleX = 1 + Math.sin(this.time.now / 900) * 0.02;
+    this.layers.aura.scaleY = 1 + Math.cos(this.time.now / 1050) * 0.03;
 
     const scoreState = this.scoreSystem.update(delta, this.currentSpeed);
     const nextStage = this.stageTracker.getStage(scoreState.score);
@@ -154,6 +205,9 @@ export class PlayScene extends Phaser.Scene {
     if (nextStage !== this.currentStage) {
       this.currentStage = nextStage;
       this.stageText.setText(nextStage);
+      this.runBadge.setText(`${nextStage} unlocked`);
+      this.flashStagePulse();
+      this.applyStagePalette(nextStage, true);
       audioSystem.play('milestone');
     }
 
@@ -215,6 +269,7 @@ export class PlayScene extends Phaser.Scene {
 
   getDebugSnapshot(): {
     characterKey: string;
+    currentStage: StageReached;
     instanceId: number;
     isGameOver: boolean;
     jumpCount: number;
@@ -228,6 +283,7 @@ export class PlayScene extends Phaser.Scene {
 
     return {
       characterKey: this.characterKey,
+      currentStage: this.currentStage,
       instanceId: this.instanceId,
       isGameOver: this.isGameOver,
       jumpCount: this.jumpCount,
@@ -265,6 +321,7 @@ export class PlayScene extends Phaser.Scene {
 
     this.isGameOver = true;
     this.player.fail();
+    this.cameras.main.shake(180, 0.01);
     audioSystem.play('collision');
 
     this.physics.pause();
@@ -284,6 +341,46 @@ export class PlayScene extends Phaser.Scene {
 
     this.time.delayedCall(500, () => {
       this.game.events.emit('run-ended', pendingRun);
+    });
+  }
+
+  private flashStagePulse(): void {
+    this.stagePulse.setScale(1, 1);
+    this.stagePulse.setAlpha(0.28);
+    this.tweens.killTweensOf(this.stagePulse);
+    this.tweens.add({
+      targets: this.stagePulse,
+      alpha: 0,
+      scaleX: 1.02,
+      scaleY: 1.18,
+      duration: 450,
+      ease: 'Sine.easeOut',
+    });
+  }
+
+  private applyStagePalette(stage: StageReached, animate: boolean): void {
+    const palette = stagePalette[stage];
+    this.stageText.setColor(`#${palette.accent.toString(16).padStart(6, '0')}`);
+    this.progressBar.fillColor = palette.accent;
+    this.stagePulse.fillColor = palette.accent;
+
+    const layers = [this.layers.aura, this.layers.beamLeft, this.layers.beamRight];
+    const colors = [palette.aura, palette.beamLeft, palette.beamRight];
+
+    layers.forEach((layer, index) => {
+      if (animate) {
+        const startColor = (layer.fillColor as number | undefined) ?? colors[index];
+        this.tweens.addCounter({
+          from: 0,
+          to: colors[index],
+          duration: 450,
+          onUpdate: (tween) => {
+            layer.fillColor = lerpColor(startColor, colors[index], tween.progress);
+          },
+        });
+      } else {
+        layer.fillColor = colors[index];
+      }
     });
   }
 }
