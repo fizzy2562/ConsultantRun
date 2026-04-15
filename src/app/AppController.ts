@@ -899,7 +899,7 @@ export class AppController {
     const leaderboardEntries = hasScores ? this.state.dailyLeaderboard : buildSampleLeaderboard();
 
     return `
-      <section class="overlay-layout">
+      <section class="overlay-layout overlay-layout--result">
         <div class="overlay-column">
           <article class="overlay-card overlay-card--floating">
             <div class="top-bar">

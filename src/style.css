@@ -209,6 +209,10 @@ a {
   overflow-y: auto;
 }
 
+.overlay-root[data-screen="result"] {
+  align-items: start;
+}
+
 .overlay-root[data-screen="play"] > * {
   pointer-events: none;
 }
@@ -229,6 +233,10 @@ a {
 
 .overlay-layout--play {
   grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.overlay-layout--result {
   align-items: start;
 }
 
@@ -950,6 +958,33 @@ pre {
 }
 
 @media (max-width: 580px) {
+  .game-panel {
+    min-height: calc(100vh - 90px);
+  }
+
+  .overlay-root[data-screen="result"] {
+    align-items: start;
+    padding: 10px;
+  }
+
+  .overlay-layout--result {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .overlay-layout--result > aside {
+    display: none;
+  }
+
+  .overlay-layout--result .overlay-column {
+    gap: 12px;
+  }
+
+  .overlay-layout--result .overlay-card--floating {
+    width: 100%;
+    max-width: none;
+  }
+
   .brand-bar__copy {
     display: none;
   }
@@ -964,6 +999,23 @@ pre {
     max-width: none;
   }
 
+  .overlay-layout--result .overlay-headline {
+    gap: 10px;
+    padding: 2px 0 0;
+  }
+
+  .overlay-layout--result .overlay-headline h2 {
+    font-size: clamp(2.15rem, 11vw, 3.1rem);
+  }
+
+  .overlay-layout--result .top-bar {
+    align-items: flex-start;
+  }
+
+  .overlay-layout--result .result-sponsor {
+    padding-bottom: 4px;
+  }
+
   .hero-stats {
     grid-template-columns: 1fr;
   }
@@ -972,12 +1024,24 @@ pre {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .overlay-layout--result .stat-grid {
+    gap: 10px;
+  }
+
   .stat-card {
     padding: 14px 12px;
   }
 
   .stat-card__value {
     font-size: 1.2rem;
+  }
+
+  .overlay-layout--result .actions--stack {
+    gap: 10px;
+  }
+
+  .overlay-layout--result .auth-form {
+    margin-top: 4px;
   }
 
   .role-grid {

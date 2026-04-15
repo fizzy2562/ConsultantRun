@@ -70,3 +70,25 @@ test('mobile replay restarts the game with the same sponsor after a result', asy
   expect(state.playScene?.isGameOver).toBe(false);
   await expect(page.locator('.play-hud')).toContainText('Run 1 of 3');
 });
+
+test('mobile result view keeps the replay path focused', async ({ page }) => {
+  await startRun(page, 'runner-delaware');
+  await forceFinishLife(page);
+  await forceFinishLife(page);
+  await forceFinishLife(page);
+  await waitForScreen(page, 'result');
+
+  await expect(page.locator('[data-action="replay"]')).toBeVisible();
+  await expect(page.locator('.overlay-layout--result aside')).toBeHidden();
+
+  const overlay = page.locator('#overlay-root');
+  const resultCard = page.locator('.overlay-card--floating').first();
+  const overlayBox = await overlay.boundingBox();
+  const cardBox = await resultCard.boundingBox();
+
+  if (!overlayBox || !cardBox) {
+    throw new Error('Unable to measure the mobile result layout.');
+  }
+
+  expect(cardBox.width).toBeGreaterThanOrEqual(overlayBox.width - 28);
+});

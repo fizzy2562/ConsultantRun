@@ -84,4 +84,6 @@ test('obstacle art is cropped and scaled to cover its intended render box', asyn
   expect(obstacle?.cropWidth).toBeGreaterThan(obstacle?.targetWidth ?? 0);
   expect(obstacle?.displayWidth).toBeGreaterThan(obstacle?.targetWidth ?? 0);
   expect(obstacle?.displayHeight).toBeCloseTo(obstacle?.targetHeight ?? 0, 0);
+  expect(obstacle?.targetWidth).toBeGreaterThanOrEqual(190);
+  expect(obstacle?.targetHeight).toBeGreaterThanOrEqual(105);
 });
