@@ -14,3 +14,10 @@ export const supabase = isSupabaseConfigured
       },
     })
   : null;
+
+if (!isSupabaseConfigured && typeof window !== 'undefined') {
+  console.warn(
+    '[ConsultantRun] Supabase is not configured. Leaderboard will use localStorage only. ' +
+    'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable the live board.'
+  );
+}

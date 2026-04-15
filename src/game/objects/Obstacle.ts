@@ -24,8 +24,7 @@ export class Obstacle extends Phaser.Physics.Arcade.Sprite {
       this.setCrop(cropX, cropY, cropWidth, cropHeight);
     }
 
-    const scale = Math.max(definition.width / cropWidth, definition.height / cropHeight);
-    this.setDisplaySize(cropWidth * scale, cropHeight * scale);
+    this.setDisplaySize(definition.width, definition.height);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);

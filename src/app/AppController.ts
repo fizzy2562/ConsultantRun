@@ -122,7 +122,7 @@ function formatLeaderboard(entries: LeaderboardEntry[]): string {
       ${entries
         .map(
           (entry) => `
-            <li>
+            <li class="${entry.prizeStatus === 'preview' ? 'leaderboard__entry--sample' : ''}">
               <span class="leaderboard-rank">#${entry.rank}</span>
               <div class="leaderboard__meta">
                 <span class="leaderboard__name">${escapeHtml(sanitizeDisplayName(entry.displayName))}</span>
@@ -234,6 +234,8 @@ export class AppController {
 
   private isUnlockingPendingRun = false;
 
+  private leaderboardPollInterval: ReturnType<typeof setInterval> | null = null;
+
   private state: ViewState = {
     screen: 'menu',
     selectedCharacter: characters[0].key,
@@ -291,6 +293,7 @@ export class AppController {
 
     this.state.loading = false;
     this.showMenu();
+    this.startLeaderboardPolling();
   }
 
   private bindEvents(): void {
@@ -604,6 +607,8 @@ export class AppController {
     this.state.loading = false;
     this.game.scene.start('MenuScene');
     this.render();
+    this.stopLeaderboardPolling();
+    this.startLeaderboardPolling();
   }
 
   private openCharacterSelect(): void {
@@ -626,6 +631,23 @@ export class AppController {
     this.state.isLeaderboardOpen = false;
     this.state.authMessage = null;
     this.render();
+  }
+
+
+  private startLeaderboardPolling(): void {
+    if (this.leaderboardPollInterval !== null) {
+      return;
+    }
+    this.leaderboardPollInterval = setInterval(() => {
+      void this.refreshLeaderboards().then(() => { this.render(); });
+    }, 30_000);
+  }
+
+  private stopLeaderboardPolling(): void {
+    if (this.leaderboardPollInterval !== null) {
+      clearInterval(this.leaderboardPollInterval);
+      this.leaderboardPollInterval = null;
+    }
   }
 
   getDebugState(): {
@@ -1093,6 +1115,9 @@ export class AppController {
                         : ''
                     }
                     <button class="button button--ghost${eventConfig.enableGoogleAuth ? '' : ' button--lg'}" data-action="replay" type="button">Play again</button>
+                    <a class="button button--ghost" data-action="product-cta" href="${escapeHtml(productUrl)}">
+                      ${escapeHtml(eventConfig.premiumCtaLabel)}
+                    </a>
                   </div>
                   <form class="auth-form" data-action="magic-link">
                     <label>

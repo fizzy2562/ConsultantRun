@@ -264,12 +264,11 @@ export const leaderboardService = {
         .gte('created_at', start)
         .lte('created_at', end)
         .order('score', { ascending: false })
-        .order('created_at', { ascending: true })
-        .limit(10);
+        .order('created_at', { ascending: true });
 
       if (!error && data) {
         const entries = (data as Record<string, unknown>[]).map(normalizeScore);
-        return entries.map((entry) => toLeaderboardEntry(entry, entries));
+        return entries.map((entry) => toLeaderboardEntry(entry, entries)).slice(0, 10);
       }
 
       console.warn('[leaderboard] failed to fetch daily leaderboard', error?.message);

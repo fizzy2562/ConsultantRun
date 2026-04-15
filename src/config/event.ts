@@ -28,5 +28,5 @@ export const eventConfig = {
     'Architect',
     'Not sure yet',
   ] as RoleIntent[],
-  premiumCtaLabel: 'Find out more about ConsultantCloud',
+  premiumCtaLabel: 'Talk to ConsultantCloud at the stand',
 };

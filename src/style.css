@@ -312,6 +312,10 @@ a {
 .event-chip,
 .status-chip,
 .role-chip,
+.leaderboard__entry--sample {
+  opacity: 0.52;
+}
+
 .leaderboard-rank {
   display: inline-flex;
   align-items: center;

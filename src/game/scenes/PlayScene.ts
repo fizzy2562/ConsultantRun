@@ -237,6 +237,7 @@ export class PlayScene extends Phaser.Scene {
 
       if (obstacle.x < -obstacle.displayWidth) {
         this.obstacleClears += 1;
+        this.scoreSystem.addBonus(obstacle.definition.scoreValue);
         obstacle.destroy();
       }
     });
