@@ -311,7 +311,9 @@ a {
 
 .event-chip,
 .status-chip,
-.role-chip,
+.role-chip {
+}
+
 .leaderboard__entry--sample {
   opacity: 0.52;
 }

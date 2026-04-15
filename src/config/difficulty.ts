@@ -8,6 +8,6 @@ export const difficultyConfig = {
   maxSpawnGapLate: 500,
   jumpVelocity: -960,
   gravityY: 1860,
-  maxSurvivableScorePerSecond: 45,
+  maxSurvivableScorePerSecond: 60,
   submissionCooldownMs: 8_000,
 };

@@ -639,7 +639,11 @@ export class AppController {
       return;
     }
     this.leaderboardPollInterval = setInterval(() => {
-      void this.refreshLeaderboards().then(() => { this.render(); });
+      void this.refreshLeaderboards().then(() => {
+        if (this.state.screen === 'menu') {
+          this.render();
+        }
+      });
     }, 30_000);
   }
 
