@@ -19,6 +19,25 @@ const stagePalette: Record<StageReached, { accent: number; aura: number; beamLef
   'Go Live': { accent: 0xffef8a, aura: 0x61b8ff, beamLeft: 0x61b8ff, beamRight: 0x6ee98d },
 };
 
+function lerpChannel(from: number, to: number, progress: number): number {
+  return Math.round(Phaser.Math.Linear(from, to, progress));
+}
+
+function lerpColor(from: number, to: number, progress: number): number {
+  const fromR = (from >> 16) & 0xff;
+  const fromG = (from >> 8) & 0xff;
+  const fromB = from & 0xff;
+  const toR = (to >> 16) & 0xff;
+  const toG = (to >> 8) & 0xff;
+  const toB = to & 0xff;
+
+  return (
+    (lerpChannel(fromR, toR, progress) << 16) |
+    (lerpChannel(fromG, toG, progress) << 8) |
+    lerpChannel(fromB, toB, progress)
+  );
+}
+
 export class PlayScene extends Phaser.Scene {
   private static nextInstanceId = 1;
 
@@ -350,12 +369,13 @@ export class PlayScene extends Phaser.Scene {
 
     layers.forEach((layer, index) => {
       if (animate) {
+        const startColor = (layer.fillColor as number | undefined) ?? colors[index];
         this.tweens.addCounter({
-          from: (layer.fillColor as number | undefined) ?? colors[index],
+          from: 0,
           to: colors[index],
           duration: 450,
           onUpdate: (tween) => {
-            layer.fillColor = Number(tween.getValue());
+            layer.fillColor = lerpColor(startColor, colors[index], tween.progress);
           },
         });
       } else {

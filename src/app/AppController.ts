@@ -47,6 +47,7 @@ interface ViewState {
   displayName: string;
   livesRemaining: number;
   bestPendingRun: PendingRun | null;
+  resultRun: PendingRun | null;
   isLeaderboardOpen: boolean;
   session: EventSessionContext | null;
   pendingRun: PendingRun | null;
@@ -239,6 +240,7 @@ export class AppController {
     displayName: '',
     livesRemaining: TOTAL_LIVES,
     bestPendingRun: null,
+    resultRun: null,
     isLeaderboardOpen: false,
     session: null,
     pendingRun: null,
@@ -418,6 +420,7 @@ export class AppController {
     this.state.submittedScore = null;
     this.state.pendingRun = null;
     this.state.bestPendingRun = null;
+    this.state.resultRun = null;
     clearPendingRun();
     this.render();
     setActiveCharacter(this.state.selectedCharacter);
@@ -440,6 +443,7 @@ export class AppController {
     this.state.loading = false;
     this.state.submittedScore = null;
     this.state.authMessage = null;
+    this.state.resultRun = pendingRun;
     this.game.scene.start('ResultScene', { pendingRun });
 
     if (this.state.user) {
@@ -477,6 +481,7 @@ export class AppController {
     const bestRun = this.state.bestPendingRun ?? pendingRun;
     savePendingRun(bestRun);
     this.state.pendingRun = bestRun;
+    this.state.resultRun = bestRun;
     this.state.submittedScore = null;
     this.state.screen = 'result';
     this.state.authMessage = null;
@@ -610,6 +615,7 @@ export class AppController {
     this.state.authMessage = null;
     this.state.loading = false;
     this.state.submittedScore = null;
+    this.state.resultRun = null;
     clearPendingRun();
     this.game.scene.start('MenuScene');
     this.render();
@@ -971,7 +977,7 @@ export class AppController {
     const percentile = this.state.submittedScore?.percentile ?? null;
     const character = characterByKey.get(this.state.selectedCharacter);
     const scoreMood = getScoreMood(displayScore);
-    const obstacleClears = score && 'obstacleClears' in score ? score.obstacleClears : 0;
+    const obstacleClears = this.state.resultRun?.obstacleClears ?? 0;
     const dailyEntries = this.state.dailyLeaderboard.length ? this.state.dailyLeaderboard : buildSampleLeaderboard();
     const allTimeEntries = this.state.allTimeLeaderboard.length ? this.state.allTimeLeaderboard : buildSampleLeaderboard();
     const productUrl = buildCtaUrl(eventConfig.consultantCloudCtaUrl, {

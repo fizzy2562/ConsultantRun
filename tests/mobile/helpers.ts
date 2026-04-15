@@ -94,9 +94,15 @@ export async function forceFinishLife(page: Page): Promise<void> {
   const before = await getDebugState(page);
   const previousInstanceId = before.playScene?.instanceId ?? 0;
 
-  await page.evaluate(() => {
-    void window.__consultantRunDebug?.forceFinishRun();
-  });
+  if (before.screen === 'result') {
+    return;
+  }
+
+  if (!before.playScene?.isGameOver) {
+    await page.evaluate(() => {
+      void window.__consultantRunDebug?.forceFinishRun();
+    });
+  }
 
   await page.waitForFunction(
     (instanceId) => {

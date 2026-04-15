@@ -2,7 +2,7 @@
 
 :root {
   color-scheme: dark;
-  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  font-family: "Avenir Next", Inter, "Segoe UI", sans-serif;
   background:
     radial-gradient(circle at top left, rgba(77, 166, 139, 0.24), transparent 28%),
     radial-gradient(circle at top right, rgba(61, 127, 171, 0.24), transparent 30%),
